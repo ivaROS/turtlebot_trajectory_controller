@@ -82,6 +82,7 @@ public:
     enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
     disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("cmd_vel_mux/input/navi", 10);
+    this->disable();
     return true;
   };
 
@@ -90,8 +91,9 @@ private:
   std::string name_;
   ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_;
   ros::Publisher command_publisher_;
-  double k_turn;
-  double k_drive;
+  double k_turn_;
+  double k_drive_;
+  ros::Time start_time_;
 
   /**
    * @brief ROS logging output for enabling the controller
@@ -111,9 +113,11 @@ private:
    */
   void OdomCB(const nav_msgs::OdometryPtr msg);
 
+  nav_msgs::OdometryPtr getDesiredState(std_msgs::Header header);
+
   Eigen::Matrix2cd getComplexMatrix(double x, double y, double cosTh, double sinTh);
 
-  void ControlLaw(nav_msgs::OdometryPtr current, nav_msgs::Odometry desired);
+  geometry_msgs::Twist ControlLaw(nav_msgs::OdometryPtr current, nav_msgs::OdometryPtr desired);
 
 };
 
@@ -122,6 +126,7 @@ void TrajectoryController::enableCB(const std_msgs::EmptyConstPtr msg)
   if (this->enable())
   {
     ROS_INFO_STREAM("Controller has been enabled. [" << name_ << "]");
+    start_time_ = ros::Time::now();
   }
   else
   {
@@ -165,15 +170,15 @@ Eigen::Matrix2cd TrajectoryController::getComplexMatrix(double x, double y, doub
 
 
 
-void TrajectoryController::ControlLaw(nav_msgs::OdometryPtr current, nav_msgs::Odometry desired)
+geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr current, nav_msgs::OdometryPtr desired)
 {
     geometry_msgs::Point position = current->pose.pose.position;
     geometry_msgs::Quaternion orientation = current->pose.pose.orientation;
 
     Eigen::Matrix2cd g_curr = TrajectoryController::getComplexMatrix(position.x, position.y, orientation.w, orientation.z);
 
-    position = desired.pose.pose.position;
-    orientation = desired.pose.pose.orientation;
+    position = desired->pose.pose.position;
+    orientation = desired->pose.pose.orientation;
 
     Eigen::Matrix2cd g_des = TrajectoryController::getComplexMatrix(position.x, position.y, orientation.w, orientation.z);
 
@@ -183,26 +188,73 @@ void TrajectoryController::ControlLaw(nav_msgs::OdometryPtr current, nav_msgs::O
     double theta_error = std::arg(g_error(0,0));
     double x_error = g_error.real()(0,1);
     
-    double v_ang_fb = theta_error * k_turn;
-    double v_lin_fb = x_error * k_drive;
+    double v_ang_fb = theta_error * k_turn_;
+    double v_lin_fb = x_error * k_drive_;
 
-    double v_ang_ff = current->twist.twist.angular.z;
-    double v_lin_ff = current->twist.twist.linear.x;
+    double v_ang_ff = desired->twist.twist.angular.z;
+    double v_lin_ff = desired->twist.twist.linear.x;
 
     double v_ang = v_ang_fb + v_ang_ff;
     double v_lin = v_lin_fb + v_lin_ff;
 
+    geometry_msgs::Vector3 linear;
+    linear.x = v_lin;
 
+    geometry_msgs::Vector3 angular;
+    angular.z = v_ang;
+
+    geometry_msgs::Twist command;
+    command.linear = linear;
+    command.angular = angular;
+    
+    return command;
 }
 
+nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header header)
+{
+  
+  ros::Duration elapsed_time = header.stamp - start_time_;
+  double t = elapsed_time.toSec();
 
+
+  double vel = .05;
+
+  double x = t * vel;
+  double y = 0;
+  double theta = 0;
+
+  
+
+  geometry_msgs::Quaternion quat;
+  quat.w = cos(theta);
+  quat.z = sin(theta);
+
+  nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
+
+  // Header
+  odom->header = header;
+
+  // Position
+  odom->pose.pose.position.x = x;
+  odom->pose.pose.position.y = y;
+  odom->pose.pose.position.z = 0.0;
+  odom->pose.pose.orientation = quat;
+
+  // Velocity
+  odom->twist.twist.linear.x = 0;
+  odom->twist.twist.linear.y = 0;
+  odom->twist.twist.angular.z = 0;
+
+  return odom;
+}
 
 
 void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
 {
   if (this->getState()) // check, if the controller is active
   {
-    
+    nav_msgs::OdometryPtr desired = TrajectoryController::getDesiredState(msg->header);
+    geometry_msgs::Twist command = TrajectoryController::ControlLaw(msg, desired);
   }
 
 
