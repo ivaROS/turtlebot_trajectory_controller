@@ -232,6 +232,7 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   double vel = .05;
 
   double x = t * vel;
+    if(x>3) x=3;
   double y = 0;
   double theta = 0;
 
@@ -270,7 +271,7 @@ void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
   ROS_INFO_STREAM("Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
     nav_msgs::OdometryPtr desired = TrajectoryController::getDesiredState(msg->header);
     geometry_msgs::Twist command = TrajectoryController::ControlLaw(msg, desired);
-    //command_publisher_.publish(command);
+    command_publisher_.publish(command);
     ROS_INFO_STREAM("Command: " << command.linear.x <<"m/s, " << command.angular.z << "rad/s");
   }
 
