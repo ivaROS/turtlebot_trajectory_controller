@@ -207,6 +207,8 @@ geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr curr
     geometry_msgs::Twist command;
     command.linear = linear;
     command.angular = angular;
+
+    ROS_INFO_STREAM("Linear Error: " << x_error << "m, Angular Error: " << theta_error << "rad");
     
     return command;
 }
@@ -246,6 +248,8 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   odom->twist.twist.linear.y = 0;
   odom->twist.twist.angular.z = 0;
 
+  ROS_INFO_STREAM("Desired@ " << t << "s: (" << x << "," << y << ") and " << quat.w <<"," << quat.z);
+
   return odom;
 }
 
@@ -254,6 +258,7 @@ void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
 {
   if (this->getState()) // check, if the controller is active
   {
+  ROS_INFO_STREAM("Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
     nav_msgs::OdometryPtr desired = TrajectoryController::getDesiredState(msg->header);
     geometry_msgs::Twist command = TrajectoryController::ControlLaw(msg, desired);
     //command_publisher_.publish(command);
