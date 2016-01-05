@@ -232,17 +232,23 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   double velx = .2;
   double vely = .1;
 
+  if(t>10)
+{
+    t=10;
+
+}
+
   double x = t * velx;
    // if(x>3) x=3;
   double dx = velx;
-
-  double f = 1/.25;
+  double period = 4;
+  double f = 1./period * 2 * 3.14;
   double y = vely * cos(t*f);
   double dy = vely*f*sin(t*f);
 
   double theta = atan2(dy,dx);
 
-  
+
 
   geometry_msgs::Quaternion quat;
   quat.w = cos(theta);
