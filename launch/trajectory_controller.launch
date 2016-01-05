@@ -5,5 +5,6 @@
  -->
 <launch>
   <node pkg="nodelet" type="nodelet" name="trajectory_controller" args="load turtlebot_trajectory_controller/TrajectoryControllerNodelet mobile_base_nodelet_manager" output="screen">
+    <remap from="/trajectory_controller/odom" to="/odom"/>
   </node>
 </launch>

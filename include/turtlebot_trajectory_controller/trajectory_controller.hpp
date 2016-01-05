@@ -81,8 +81,8 @@ public:
   {
     enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
     disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
-    odom_subscriber_ = nh_.subscribe("odom", 1, &TrajectoryController::OdomCB, this);
-    command_publisher_ = nh_.advertise< geometry_msgs::Twist >("cmd_vel_mux/input/navi", 10);
+    odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
+    command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
    // this->disable();
     return true;
   };
@@ -256,6 +256,8 @@ void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
   {
     nav_msgs::OdometryPtr desired = TrajectoryController::getDesiredState(msg->header);
     geometry_msgs::Twist command = TrajectoryController::ControlLaw(msg, desired);
+    //command_publisher_.publish(command);
+    ROS_INFO_STREAM("Command: " << command.linear.x <<"m/s, " << command.angular.z << "rad/s");
   }
 
 
