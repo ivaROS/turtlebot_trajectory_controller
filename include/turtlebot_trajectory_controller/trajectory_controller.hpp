@@ -245,11 +245,22 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   double period = 4;
   double f = 1./period * 2 * 3.14;
   double y = vely * cos(t*f);
-  double dy = vely*f*sin(t*f);
+  double dy = -vely*f*sin(t*f);
 
   double theta = atan2(dy,dx);
 
 
+  double linvel = 0;
+  double angvel = 0;
+
+  if(t>5)  //Activate Feedforward:
+  {
+    linvel = sqrt(dx*dx + dy*dy);
+
+    double ddx = 0;
+    double ddy = -vely*f*f*cos(t*f);
+    angvel = ( 1.0/(1+ (dy/dx)*(dy/dx))  )  *  (  (dx*ddy - dy*ddx)/(dx*dx)  )
+  }
 
   geometry_msgs::Quaternion quat;
   quat.w = cos(theta);
@@ -267,9 +278,9 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   odom->pose.pose.orientation = quat;
 
   // Velocity
-  odom->twist.twist.linear.x = 0;
+  odom->twist.twist.linear.x = linvel;
   odom->twist.twist.linear.y = 0;
-  odom->twist.twist.angular.z = 0;
+  odom->twist.twist.angular.z = angvel;
 
   ROS_INFO_STREAM("Desired@ " << t << "s: (" << x << "," << y << ") and " << quat.w <<"," << quat.z);
 
