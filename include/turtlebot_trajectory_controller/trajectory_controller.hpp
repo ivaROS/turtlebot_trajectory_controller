@@ -229,12 +229,18 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   double t = elapsed_time.toSec();
 
 
-  double vel = .05;
+  double velx = .2;
+  double vely = .1;
 
-  double x = t * vel;
-    if(x>3) x=3;
-  double y = 0;
-  double theta = 0;
+  double x = t * velx;
+   // if(x>3) x=3;
+  double dx = velx;
+
+  double f = 1/.25;
+  double y = vely * cos(t*f);
+  double dy = vely*f*sin(t*f);
+
+  double theta = atan2(dy,dx);
 
   
 
