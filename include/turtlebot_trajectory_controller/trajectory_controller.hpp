@@ -83,7 +83,9 @@ public:
     disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
     odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
-   // this->disable();
+   // this->enable();
+    k_drive_=1;
+    k_turn_=1;
     return true;
   };
 
@@ -165,7 +167,10 @@ Eigen::Matrix2cd TrajectoryController::getComplexMatrix(double x, double y, doub
   g.imag()(0,0) = sinTh;
   g.imag()(0,1) = y;
   g.imag()(1,0) = 0;
-  g.imag()(1,1) = 1;
+  g.imag()(1,1) = 0;
+
+    ROS_INFO("\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", g.real()(0,0), g.imag()(0,0), g.real()(0,1), g.imag()(0,1), g.real()(1,0), g.imag()(1,0), g.real()(1,1), g.imag()(1,1));
+
   return g;
 }
 
@@ -176,14 +181,18 @@ geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr curr
     geometry_msgs::Point position = current->pose.pose.position;
     geometry_msgs::Quaternion orientation = current->pose.pose.orientation;
 
+    ROS_INFO_STREAM("Current:");
     Eigen::Matrix2cd g_curr = TrajectoryController::getComplexMatrix(position.x, position.y, orientation.w, orientation.z);
 
     position = desired->pose.pose.position;
     orientation = desired->pose.pose.orientation;
 
+    ROS_INFO_STREAM("Desired:");
     Eigen::Matrix2cd g_des = TrajectoryController::getComplexMatrix(position.x, position.y, orientation.w, orientation.z);
 
     Eigen::Matrix2cd g_error = g_curr.inverse() * g_des;
+
+    ROS_INFO("Error:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", g_error.real()(0,0), g_error.imag()(0,0), g_error.real()(0,1), g_error.imag()(0,1), g_error.real()(1,0), g_error.imag()(1,0), g_error.real()(1,1), g_error.imag()(1,1));
 
     
     double theta_error = std::arg(g_error(0,0));
