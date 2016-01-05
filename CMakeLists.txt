@@ -6,7 +6,8 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         std_msgs
                                         kobuki_msgs
                                         yocs_controllers cmake_modules geometry_msgs)
-find_package(Eigen3 REQUIRED)
+##Note: on indigo, must be 'Eigen3' here and under 'include_directories'. Hydro, just 'Eigen'
+find_package(Eigen REQUIRED)
 
 
 catkin_package(INCLUDE_DIRS include
@@ -21,7 +22,7 @@ catkin_package(INCLUDE_DIRS include
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
+  ${EIGEN_INCLUDE_DIR}
 )
 
 add_library(trajectory_controller_nodelet src/nodelet.cpp)
