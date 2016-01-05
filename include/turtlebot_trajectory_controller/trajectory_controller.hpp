@@ -235,6 +235,7 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   if(t>10)
 {
     t=10;
+    this->disable();
 
 }
 
