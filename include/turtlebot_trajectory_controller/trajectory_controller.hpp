@@ -81,6 +81,7 @@ public:
   {
     enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
     disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
+    odom_subscriber_ = nh_.subscribe("odom", 1, &TrajectoryController::OdomCB, this);
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("cmd_vel_mux/input/navi", 10);
    // this->disable();
     return true;
@@ -89,7 +90,7 @@ public:
 private:
   ros::NodeHandle nh_;
   std::string name_;
-  ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_;
+  ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_;
   ros::Publisher command_publisher_;
   double k_turn_;
   double k_drive_;
