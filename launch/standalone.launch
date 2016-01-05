@@ -2,7 +2,7 @@
   Standalone launcher for testing 
  -->
 <launch>
-  <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager" args="manager"/>
+  <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager_2" args="manager"/>
   <node pkg="nodelet" type="nodelet" name="trajectory_controller" args="load turtlebot_trajectory_controller/TrajectoryControllerNodelet mobile_base_nodelet_manager">
 
   </node>

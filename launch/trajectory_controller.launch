@@ -4,7 +4,7 @@
   Requires kobuki_node/minimal,launch or turtlebot_bringup/minimal.launch to be launched before.
  -->
 <launch>
-  <node pkg="nodelet" type="nodelet" name="bump_blink_controller" args="load turtlebot_trajectory_controller/TrajectoryControllerNodelet mobile_base_nodelet_manager">
+  <node pkg="nodelet" type="nodelet" name="trajectory_controller" args="load turtlebot_trajectory_controller/TrajectoryControllerNodelet mobile_base_nodelet_manager">
 
   </node>
 </launch>
