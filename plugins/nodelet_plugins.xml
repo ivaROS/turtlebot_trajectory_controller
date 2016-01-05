@@ -1,0 +1,8 @@
+<library path="lib/libtrajectory_controller_nodelet">
+  <class name="turtlebot_trajectory_controller/TrajectoryControllerNodelet" type="kobuki::TrajectoryControllerNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Nodelet to follow a trajectory
+    </description>
+  </class>
+</library>
+
