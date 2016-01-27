@@ -34,8 +34,7 @@
 // %Tag(FULLTEXT)%
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
-#include <yocs_controllers/default_controller.hpp>
-#include <Eigen/Dense>
+
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Quaternion.h>
@@ -59,7 +58,7 @@ namespace kobuki
  
 //[ rhs_class
 /* The rhs of x' = f(x) defined as a class */
-class sample_traj_func : public virtual traj_func{
+class sample_traj_func : public traj_func{
 
     double m_amp;
     double m_f;
@@ -67,11 +66,18 @@ class sample_traj_func : public virtual traj_func{
 public:
     sample_traj_func( double amp, double f ) : m_amp(amp), m_f(f) { }
 
+    void init ( const state_type &x0 )
+    {
+        
+    }
+    
     void dState ( const state_type &x , state_type &dxdt , const double  t  )
     {
         dxdt[6] = 1;
         dxdt[7] = sin(t*2.0*3.14*m_f) * m_amp;
     }
+    
+    
 };
 //]
 
@@ -96,7 +102,7 @@ public:
     button_subscriber_ = nh_.subscribe("send", 10, &TrajectoryTester::buttonCB, this);
 
     odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryTester::OdomCB, this);
-    trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_point >("/desired_trajectory", 10);
+    trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("/desired_trajectory", 10);
 
     return true;
   };
@@ -157,11 +163,11 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
     //start_time_ = ros::Time::now();
     std::vector<trajectory_generator::trajectory_point> points = traj_gen_bridge.generate_trajectory(odom_msg, trajpntr);
     
-    trajectory_generator::trajectory_points trajectory;
-    trajectory.points = points;
-    trajectory.header.stamp = ros::Time::now();
+    trajectory_generator::trajectory_points trajectory_msg;
+    trajectory_msg.points = points;
+    trajectory_msg.header.stamp = ros::Time::now();
     
-    return trajectory;
+    return trajectory_msg;
 }
 
 
@@ -175,4 +181,28 @@ void TrajectoryTester::OdomCB(const nav_msgs::OdometryPtr msg)
 
 } // namespace kobuki
 // %EndTag(FULLTEXT)%
+
+
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "test_trajectory_sender");
+    ros::NodeHandle nh;
+    std::string name = ros::this_node::getName();
+    kobuki::TrajectoryTester tester(nh,name);
+    
+
+    if (tester.init())
+    {
+        ros::spin();
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Couldn't initialise KeyOpCore!");
+    }
+
+    ROS_INFO_STREAM("Program exiting");
+    return 0;
+
+}
 

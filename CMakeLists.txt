@@ -38,7 +38,7 @@ add_library(trajectory_controller_nodelet src/nodelet.cpp)
 add_dependencies(trajectory_controller_nodelet kobuki_msgs_gencpp)
 target_link_libraries(trajectory_controller_nodelet ${catkin_LIBRARIES})
 
-add_library(Trajectory_Tester src/send_test_trajectory.cpp)
+add_executable(Trajectory_Tester src/send_test_trajectory.cpp)
 target_link_libraries(Trajectory_Tester ${catkin_LIBRARIES})
 
 ##install(TARGETS bump_blink_controller_nodelet
