@@ -259,7 +259,7 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
 
     double ddx = 0;
     double ddy = -vely*f*f*cos(t*f);
-    angvel = ( 1.0/(1+ (dy/dx)*(dy/dx))  )  *  (  (dx*ddy - dy*ddx)/(dx*dx)  )
+    angvel = ( 1.0/(1+ (dy/dx)*(dy/dx))  )  *  (  (dx*ddy - dy*ddx)/(dx*dx)  );
   }
 
   geometry_msgs::Quaternion quat;
