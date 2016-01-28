@@ -38,6 +38,10 @@ add_library(trajectory_controller_nodelet src/nodelet.cpp)
 add_dependencies(trajectory_controller_nodelet kobuki_msgs_gencpp)
 target_link_libraries(trajectory_controller_nodelet ${catkin_LIBRARIES})
 
+add_library(hard_coded_trajectory_controller_nodelet src/hard_coded_nodelet.cpp)
+add_dependencies(hard_coded_trajectory_controller_nodelet kobuki_msgs_gencpp)
+target_link_libraries(hard_coded_trajectory_controller_nodelet ${catkin_LIBRARIES})
+
 add_executable(Trajectory_Tester src/send_test_trajectory.cpp)
 target_link_libraries(Trajectory_Tester ${catkin_LIBRARIES})
 

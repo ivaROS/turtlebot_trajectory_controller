@@ -41,8 +41,8 @@
 ** Ifdefs
 *****************************************************************************/
 
-#ifndef TRAJECTORY_CONTROLLER_HPP_
-#define TRAJECTORY_CONTROLLER_HPP_
+#ifndef HARD_CODED_TRAJECTORY_CONTROLLER_HPP_
+#define HARD_CODED_TRAJECTORY_CONTROLLER_HPP_
 
 /*****************************************************************************
 ** Includes
@@ -57,7 +57,6 @@
 #include <geometry_msgs/Quaternion.h>
 
 #include <nav_msgs/Odometry.h>
-#include <trajectory_generator_ros_interface.h>
 
 
 namespace kobuki
@@ -83,29 +82,21 @@ public:
     enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
     disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
     odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
-    trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 10, &TrajectoryController::TrajectoryCB, this);
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
    // this->enable();
     k_drive_=1;
     k_turn_=1;
-    curr_index_ = -1;
-    executing_ = false;
-    
     return true;
   };
 
 private:
   ros::NodeHandle nh_;
   std::string name_;
-  ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_, trajectory_subscriber_;
+  ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_;
   ros::Publisher command_publisher_;
   double k_turn_;
   double k_drive_;
   ros::Time start_time_;
-  
-  trajectory_generator::trajectory_points desired_trajectory_;
-  int curr_index_;
-  bool executing_;
 
   /**
    * @brief ROS logging output for enabling the controller
@@ -124,9 +115,6 @@ private:
    * @param msg incoming topic message
    */
   void OdomCB(const nav_msgs::OdometryPtr msg);
-  
-  void TrajectoryCB(const trajectory_generator::trajectory_points msg);
-  
 
   nav_msgs::OdometryPtr getDesiredState(std_msgs::Header header);
 
@@ -154,12 +142,6 @@ void TrajectoryController::disableCB(const std_msgs::EmptyConstPtr msg)
   if (this->disable())
   {
     ROS_INFO_STREAM("Controller has been disabled. [" << name_ <<"]");
-    if(executing_)
-    {
-      executing_ = false;
-      curr_index_ = -1;
-      ROS_INFO_STREAM("Interrupted trajectory. [" << name_ <<"]");
-    }
   }
   else
   {
@@ -167,41 +149,12 @@ void TrajectoryController::disableCB(const std_msgs::EmptyConstPtr msg)
   }
 };
 
-
-void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points msg)
+/*
+void TrajectoryController::setTrajectory(const trajectory_msgs::JointTrajectoryConstPtr msg)
 {
-  if (this->enable() && !executing_)
-  {
-    ROS_INFO_STREAM("Trajectory received, preparing to execute. [" << name_ <<"]");
-    desired_trajectory_ = msg;
-    executing_ = true;
-    curr_index_ = 0;
-  }
-  else
-  {
-    ROS_INFO_STREAM("Controller disabled, will not execute trajectory. [" << name_ <<"]");
-  }
 
 }
-
-
-void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
-{
-  if (this->getState() && executing_) // check, if the controller is active
-  {
-  ROS_INFO_STREAM("Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
-  
-    nav_msgs::OdometryPtr desired = TrajectoryController::getDesiredState(msg->header);
-    geometry_msgs::Twist command = TrajectoryController::ControlLaw(msg, desired);
-    command_publisher_.publish(command);
-    ROS_INFO_STREAM("Command: " << command.linear.x <<"m/s, " << command.angular.z << "rad/s");
-  }
-
-}
-
-
-
-
+*/
 
 Eigen::Matrix2cd TrajectoryController::getComplexMatrix(double x, double y, double cosTh, double sinTh)
 {
@@ -272,25 +225,42 @@ geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr curr
 nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header header)
 {
   
-  ros::Duration elapsed_time = header.stamp - desired_trajectory_.header.stamp;
+  ros::Duration elapsed_time = header.stamp - start_time_;
   double t = elapsed_time.toSec();
 
-  //This 'should' update curr_index to refer to the last trajectory point before the desired time.
-  for(; curr_index_ < desired_trajectory_.points.size()-1 && desired_trajectory_.points[curr_index_+1].time < elapsed_time; curr_index_++);
 
-  trajectory_generator::trajectory_point pre_point = desired_trajectory_.points[curr_index_];
-  trajectory_generator::trajectory_point post_point = desired_trajectory_.points[curr_index_+1];
-  
-  ros::Duration pre_time = elapsed_time - pre_point.time;
-  ros::Duration period = post_point.time - pre_point.time;
-  
-  double pre_time_fraction = pre_time.toSec()/period.toSec();
-  
-  double x = pre_point.x*(1-pre_time_fraction) + post_point.x*pre_time_fraction;
-  double y = pre_point.y*(1-pre_time_fraction) + post_point.y*pre_time_fraction;;
-  double theta = pre_point.theta*(1-pre_time_fraction) + post_point.theta*pre_time_fraction;
-  double v = pre_point.v*(1-pre_time_fraction) + post_point.v*pre_time_fraction;
-  double w = pre_point.w*(1-pre_time_fraction) + post_point.w*pre_time_fraction;
+  double velx = .2;
+  double vely = .1;
+
+  if(t>10)
+{
+    t=10;
+    this->disable();
+
+}
+
+  double x = t * velx;
+   // if(x>3) x=3;
+  double dx = velx;
+  double period = 4;
+  double f = 1./period * 2 * 3.14;
+  double y = vely * cos(t*f);
+  double dy = -vely*f*sin(t*f);
+
+  double theta = atan2(dy,dx);
+
+
+  double linvel = 0;
+  double angvel = 0;
+
+  if(t>5)  //Activate Feedforward:
+  {
+    linvel = sqrt(dx*dx + dy*dy);
+
+    double ddx = 0;
+    double ddy = -vely*f*f*cos(t*f);
+    angvel = ( 1.0/(1+ (dy/dx)*(dy/dx))  )  *  (  (dx*ddy - dy*ddx)/(dx*dx)  );
+  }
 
   geometry_msgs::Quaternion quat;
   quat.w = cos(theta/2);
@@ -299,8 +269,7 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
 
   // Header
-  odom->header.stamp = header.stamp;
-  odom->header.frame_id = desired_trajectory_.header.frame_id;
+  odom->header = header;
 
   // Position
   odom->pose.pose.position.x = x;
@@ -309,15 +278,61 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   odom->pose.pose.orientation = quat;
 
   // Velocity
-  odom->twist.twist.linear.x = v;
+  odom->twist.twist.linear.x = linvel;
   odom->twist.twist.linear.y = 0;
-  odom->twist.twist.angular.z = w;
+  odom->twist.twist.angular.z = angvel;
 
   ROS_INFO_STREAM("Desired@ " << t << "s: (" << x << "," << y << ") and " << quat.w <<"," << quat.z);
 
   return odom;
+}
+
+
+void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
+{
+  if (this->getState()) // check, if the controller is active
+  {
+  ROS_INFO_STREAM("Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
+    nav_msgs::OdometryPtr desired = TrajectoryController::getDesiredState(msg->header);
+    geometry_msgs::Twist command = TrajectoryController::ControlLaw(msg, desired);
+    command_publisher_.publish(command);
+    ROS_INFO_STREAM("Command: " << command.linear.x <<"m/s, " << command.angular.z << "rad/s");
+  }
+
+
+
+
+
+
+
+
+
+
+/*
+
+
+
+
+    // Preparing LED message
+    kobuki_msgs::LedPtr led_msg_ptr;
+    led_msg_ptr.reset(new kobuki_msgs::Led());
+
+    if (msg->state == kobuki_msgs::BumperEvent::PRESSED)
+    {
+      ROS_INFO_STREAM("Bumper pressed. Turning LED on. [" << name_ << "]");
+      led_msg_ptr->value = kobuki_msgs::Led::GREEN;
+      blink_publisher_.publish(led_msg_ptr);
+    }
+    else // kobuki_msgs::BumperEvent::RELEASED
+    {
+      ROS_INFO_STREAM("Bumper released. Turning LED off. [" << name_ << "]");
+      led_msg_ptr->value = kobuki_msgs::Led::BLACK;
+      blink_publisher_.publish(led_msg_ptr);
+    }
+  }
+*/
 };
 
 } // namespace kobuki
 // %EndTag(FULLTEXT)%
-#endif /* TRAJECTORY_CONTROLLER_HPP_ */
+#endif /* BUMP_BLINK_CONTROLLER_HPP_ */
