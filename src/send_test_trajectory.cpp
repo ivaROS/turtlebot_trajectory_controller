@@ -50,9 +50,9 @@ namespace kobuki
 {
 
 /**
- * @ brief A simple bump-blink-controller
+ * @ brief Sends a simple trajectory
  *
- * A simple nodelet-based controller for Kobuki, which makes one of Kobuki's LEDs blink, when a bumper is pressed.
+ * A simple program that sends a trajectory to the controller when a button is pressed.
  */
  
  
@@ -103,6 +103,10 @@ public:
 
     odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryTester::OdomCB, this);
     trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("/desired_trajectory", 10);
+    
+    nav_msgs::OdometryPtr init_odom(new nav_msgs::Odometry);
+
+    curOdom_ = init_odom;
 
     return true;
   };
