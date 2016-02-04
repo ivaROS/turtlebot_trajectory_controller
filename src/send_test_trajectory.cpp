@@ -159,17 +159,16 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr msg)
 trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(const nav_msgs::OdometryPtr odom_msg)
 {
   
-    sample_traj_func traj(0.15,.1);
+    sample_traj_func trajf(0.15,.1);
     
-    traj_func* trajpntr = &traj;
+    traj_func* trajpntr = &trajf;
     
-  
-    //start_time_ = ros::Time::now();
-    std::vector<trajectory_generator::trajectory_point> points = traj_gen_bridge.generate_trajectory(odom_msg, trajpntr);
-    
-    trajectory_generator::trajectory_points trajectory_msg;
-    trajectory_msg.points = points;
+
+    ni_trajectory traj = traj_gen_bridge.generate_trajectory(odom_msg, trajpntr);
+
+    trajectory_generator::trajectory_points trajectory_msg = traj.toTrajectoryMsg ();
     trajectory_msg.header.stamp = ros::Time::now();
+    trajectory_msg.header.frame_id = odom_msg->header.frame_id;
     
     return trajectory_msg;
 }
