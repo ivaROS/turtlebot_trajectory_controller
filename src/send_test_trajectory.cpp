@@ -56,25 +56,26 @@ namespace kobuki
  */
  
  
-//[ rhs_class
-/* The rhs of x' = f(x) defined as a class */
-class sample_traj_func : public traj_func{
 
-    double m_amp;
-    double m_f;
+/* The rhs of x' = f(x) defined as a class */
+class angled_straight_traj_func : public traj_func{
+
+    double dep_angle_;
+    double v_;
+    double initial_heading_;
 
 public:
-    sample_traj_func( double amp, double f ) : m_amp(amp), m_f(f) { }
+    angled_straight_traj_func( double dep_angle, double v ) : dep_angle_(dep_angle), v_(v) { }
 
     void init ( const state_type &x0 )
     {
-        
+        initial_heading_ = x0[THETA_IND]; //theta
     }
     
     void dState ( const state_type &x , state_type &dxdt , const double  t  )
     {
-        dxdt[6] = 1;
-        dxdt[7] = sin(t*2.0*3.14*m_f) * m_amp;
+        dxdt[XD_IND] = v_*cos(initial_heading_ + dep_angle_);
+        dxdt[YD_IND] = v_*sin(initial_heading_ + dep_angle_);
     }
     
     
@@ -159,7 +160,7 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr msg)
 trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(const nav_msgs::OdometryPtr odom_msg)
 {
   
-    sample_traj_func trajf(0.15,.1);
+    angled_straight_traj_func trajf(0.3,.05);
     
     traj_func* trajpntr = &trajf;
     

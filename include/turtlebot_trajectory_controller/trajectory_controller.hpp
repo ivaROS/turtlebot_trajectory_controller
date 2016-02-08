@@ -138,7 +138,6 @@ private:
 
 void TrajectoryController::enableCB(const std_msgs::EmptyConstPtr msg)
 {
-  printf("hello");
   if (this->enable())
   {
     ROS_INFO_STREAM("Controller has been enabled. [" << name_ << "]");
