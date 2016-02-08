@@ -99,7 +99,7 @@ public:
    */
   bool init()
   {
-    button_subscriber_ = nh_.subscribe("send", 10, &TrajectoryTester::buttonCB, this);
+    button_subscriber_ = nh_.subscribe("/mobile_base/events/bumper", 10, &TrajectoryTester::buttonCB, this);
 
     odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryTester::OdomCB, this);
     trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("/desired_trajectory", 10);
