@@ -70,6 +70,7 @@ public:
     void init ( const state_type &x0 )
     {
         initial_heading_ = x0[THETA_IND]; //theta
+        std::cout << "Initial heading: " << initial_heading_ << std::endl;
     }
     
     void dState ( const state_type &x , state_type &dxdt , const double  t  )
