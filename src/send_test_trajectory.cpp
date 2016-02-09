@@ -160,8 +160,15 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr msg)
 
 trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(const nav_msgs::OdometryPtr odom_msg)
 {
-  
-    angled_straight_traj_func trajf(0.3,.05);
+    std::string init_angle_key;
+    double init_angle = 0;
+
+    if(ros::param::search("init_angle", init_angle_key))
+    {
+        ros::param::get(init_angle_key, init_angle); 
+    }
+
+    angled_straight_traj_func trajf(init_angle,.05);
     
     traj_func* trajpntr = &trajf;
     
