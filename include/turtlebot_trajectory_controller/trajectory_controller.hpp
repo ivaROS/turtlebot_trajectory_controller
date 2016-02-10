@@ -85,6 +85,7 @@ public:
     odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
     trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 10, &TrajectoryController::TrajectoryCB, this);
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
+    trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("/desired_odom", 10);
    // this->enable();
     k_drive_=1;
     k_turn_=1;
@@ -98,13 +99,13 @@ private:
   ros::NodeHandle nh_;
   std::string name_;
   ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_, trajectory_subscriber_;
-  ros::Publisher command_publisher_;
+  ros::Publisher command_publisher_, trajectory_odom_publisher_;
   double k_turn_;
   double k_drive_;
   ros::Time start_time_;
   
   trajectory_generator::trajectory_points desired_trajectory_;
-  int curr_index_;
+  size_t curr_index_;
   bool executing_;
 
   /**
@@ -192,9 +193,16 @@ void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
   ROS_INFO_STREAM("Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
   
     nav_msgs::OdometryPtr desired = TrajectoryController::getDesiredState(msg->header);
+    trajectory_odom_publisher_.publish(desired);
     geometry_msgs::Twist command = TrajectoryController::ControlLaw(msg, desired);
     command_publisher_.publish(command);
     ROS_INFO_STREAM("Command: " << command.linear.x <<"m/s, " << command.angular.z << "rad/s");
+    
+    if(curr_index_ == desired_trajectory_.points.size()-1)
+    {
+        executing_ = false;
+        curr_index_ = -1;
+    }
   }
 
 }
@@ -253,6 +261,15 @@ geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr curr
 
     double v_ang = v_ang_fb + v_ang_ff;
     double v_lin = v_lin_fb + v_lin_ff;
+    
+    /*
+      Saturation/limits:
+      Velocity limits: simply constrain v_ang and v_lin to be within defined limits.
+      Acceleration limits: possibly limit the magnitude of velocity difference between current vel and desired
+      Note, however, that the yocs_velocity_smoother package already applies robot velocity/acceleration limits. I am not sure whether it is being used at the moment, or if it is adjustable, or if additional limits are needed here. 
+    
+    
+    */
 
     geometry_msgs::Vector3 linear;
     linear.x = v_lin;
@@ -277,9 +294,12 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
 
   //This 'should' update curr_index to refer to the last trajectory point before the desired time.
   for(; curr_index_ < desired_trajectory_.points.size()-1 && desired_trajectory_.points[curr_index_+1].time < elapsed_time; curr_index_++);
-
+  
+  //This handles the case where we've reached the end of the trajectory time
+  int post_index = std::min(curr_index_+1, desired_trajectory_.points.size()-1);
+  
   trajectory_generator::trajectory_point pre_point = desired_trajectory_.points[curr_index_];
-  trajectory_generator::trajectory_point post_point = desired_trajectory_.points[curr_index_+1];
+  trajectory_generator::trajectory_point post_point = desired_trajectory_.points[post_index];
   
   ros::Duration pre_time = elapsed_time - pre_point.time;
   ros::Duration period = post_point.time - pre_point.time;
