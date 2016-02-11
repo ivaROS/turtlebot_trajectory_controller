@@ -58,14 +58,14 @@ namespace kobuki
  
 
 /* The rhs of x' = f(x) defined as a class */
-class angled_straight_traj_func : public traj_func{
-
-    double dep_angle_;
-    double v_;
+class serpentine_traj_func : public traj_func{
+    double vf_;
+    double amp_;
+    double w_;
     double initial_heading_;
 
 public:
-    angled_straight_traj_func( double dep_angle, double v ) : dep_angle_(dep_angle), v_(v) { }
+    serpentine_traj_func( double vf, double amp, double w ) : vf_(vf), amp_(amp), w_(w) { }
 
     void init ( const state_type &x0 )
     {
@@ -75,8 +75,12 @@ public:
     
     void dState ( const state_type &x , state_type &dxdt , const double  t  )
     {
-        dxdt[XD_IND] = v_*cos(initial_heading_ + dep_angle_);
-        dxdt[YD_IND] = v_*sin(initial_heading_ + dep_angle_);
+        double vlat = -amp_*w_*std::sin(w_*t);
+        double vlin = vf_*t;
+
+        
+        dxdt[XD_IND] = vlin*cos(initial_heading_) + -vlat*sin(initial_heading_);
+        dxdt[YD_IND] = vlin*sin(initial_heading_) + vlat*cos(initial_heading_);
     }
     
     
@@ -160,21 +164,27 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr msg)
 
 trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(const nav_msgs::OdometryPtr odom_msg)
 {
-    std::string init_angle_key, fw_vel_key;
-    double init_angle = 0;
+    std::string amp_key, fw_vel_key, w_key;
     double fw_vel = .05;
+    double amp = .4;
+    double w = .5;
 
-    if(ros::param::search("init_angle", init_angle_key))
+    if(ros::param::search("amp", amp_key))
     {
-        ros::param::get(init_angle_key, init_angle); 
+        ros::param::get(amp_key, amp); 
     }
     
     if(ros::param::search("fw_vel", fw_vel_key))
     {
         ros::param::get(fw_vel_key, fw_vel); 
     }
+    
+    if(ros::param::search("w", w_key))
+    {
+        ros::param::get(w_key, w); 
+    }
 
-    angled_straight_traj_func trajf(init_angle, fw_vel);
+    serpentine_traj_func trajf(fw_vel,amp,w);
     
     traj_func* trajpntr = &trajf;
     
