@@ -171,12 +171,20 @@ void TrajectoryController::disableCB(const std_msgs::EmptyConstPtr msg)
 
 void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points msg)
 {
-  if (this->enable() && !executing_)
+  ROS_INFO_STREAM("Trajectory received. [" << name_ <<"]");
+  if (this->enable())
   {
-    ROS_INFO_STREAM("Trajectory received, preparing to execute. [" << name_ <<"]");
-    desired_trajectory_ = msg;
-    executing_ = true;
-    curr_index_ = 0;
+    if(!executing_)
+    {
+      ROS_INFO_STREAM("Preparing to execute. [" << name_ <<"]");
+      desired_trajectory_ = msg;
+      executing_ = true;
+      curr_index_ = 0;
+    }
+    else
+    {
+      ROS_INFO_STREAM("Already executing trajectory, new trajectory ignored. [" << name_ <<"]");
+    }
   }
   else
   {
@@ -294,18 +302,27 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
 
   //This 'should' update curr_index to refer to the last trajectory point before the desired time.
   for(; curr_index_ < desired_trajectory_.points.size()-1 && desired_trajectory_.points[curr_index_+1].time < elapsed_time; curr_index_++);
-  
+
+  ROS_INFO_STREAM("Index: " << curr_index_ << "; # points: " << desired_trajectory_.points.size()); 
+ 
   //This handles the case where we've reached the end of the trajectory time
   int post_index = std::min(curr_index_+1, desired_trajectory_.points.size()-1);
   
+  ROS_INFO_STREAM("Preindex: " << curr_index_ << "; postindex: " << post_index);  
+ 
   trajectory_generator::trajectory_point pre_point = desired_trajectory_.points[curr_index_];
   trajectory_generator::trajectory_point post_point = desired_trajectory_.points[post_index];
   
   ros::Duration pre_time = elapsed_time - pre_point.time;
   ros::Duration period = post_point.time - pre_point.time;
   
-  double pre_time_fraction = pre_time.toSec()/period.toSec();
   
+  double pre_time_fraction = 1;
+  if(curr_index_ < desired_trajectory_.points.size()-1)
+  {
+    pre_time_fraction = pre_time.toSec()/period.toSec();
+  }
+
   double x = pre_point.x*(1-pre_time_fraction) + post_point.x*pre_time_fraction;
   double y = pre_point.y*(1-pre_time_fraction) + post_point.y*pre_time_fraction;;
   double theta = pre_point.theta*(1-pre_time_fraction) + post_point.theta*pre_time_fraction;
