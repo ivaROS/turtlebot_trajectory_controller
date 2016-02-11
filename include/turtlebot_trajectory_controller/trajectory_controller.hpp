@@ -172,7 +172,7 @@ void TrajectoryController::disableCB(const std_msgs::EmptyConstPtr msg)
 void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points msg)
 {
   ROS_INFO_STREAM("Trajectory received. [" << name_ <<"]");
-  if (this->enable())
+  if (this->getState())
   {
     if(!executing_)
     {
