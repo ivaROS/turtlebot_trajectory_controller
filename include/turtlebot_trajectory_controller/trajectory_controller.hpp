@@ -86,7 +86,7 @@ public:
     trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 10, &TrajectoryController::TrajectoryCB, this);
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
     trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("/desired_odom", 10);
-   // this->enable();
+    this->enable();
     k_drive_=1;
     k_turn_=1;
     curr_index_ = -1;
