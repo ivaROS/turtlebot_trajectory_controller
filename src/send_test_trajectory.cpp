@@ -189,9 +189,9 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
     traj_func* trajpntr = &trajf;
     
 
-    ni_trajectory traj = traj_gen_bridge.generate_trajectory(odom_msg, trajpntr);
+    ni_trajectory* traj = traj_gen_bridge.generate_trajectory(odom_msg, trajpntr);
 
-    trajectory_generator::trajectory_points trajectory_msg = traj.toTrajectoryMsg ();
+    trajectory_generator::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
     trajectory_msg.header.stamp = ros::Time::now();
     trajectory_msg.header.frame_id = odom_msg->header.frame_id;
     
