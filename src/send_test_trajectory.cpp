@@ -75,8 +75,8 @@ public:
     void dState ( const state_type &x , state_type &dxdt , const double  t  )
     {
         
-        dxdt[XD_IND] = -vf_*sin((vf_/r_) * t + initial_heading_);
-        dxdt[YD_IND] = vf_*cos((vf_/r_) * t + initial_heading_);
+        dxdt[YD_IND] = -vf_*sin((vf_/r_) * t - initial_heading_);
+        dxdt[XD_IND] = vf_*cos((vf_/r_) * t - initial_heading_);
     }
     
     
@@ -180,6 +180,19 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
     
     traj_func* trajpntr = &trajf;
     
+    
+    traj_params params = traj_gen_bridge.getDefaultParams();
+    
+    std::string key;
+    double tf;
+    
+    if(ros::param::search("tf", key))
+    {
+        ros::param::get(key, tf); 
+        params.tf = tf;
+    }
+    
+    traj_gen_bridge.setDefaultParams(params);
 
     ni_trajectory* traj = traj_gen_bridge.generate_trajectory(trajpntr, odom_msg);
     
