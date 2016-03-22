@@ -58,29 +58,18 @@ namespace kobuki
  
 
 /* The rhs of x' = f(x) defined as a class */
-class serpentine_traj_func : public traj_func{
-    double vf_;
-    double amp_;
-    double w_;
-    double initial_heading_;
+class circle_traj_func : public traj_func{
+    double vf_; //Forward vel
+    double r_;  //radius of circle
 
 public:
-    serpentine_traj_func( double vf, double amp, double w ) : vf_(vf), amp_(amp), w_(w) { }
-
-    void init ( const state_type &x0 )
-    {
-        initial_heading_ = x0[THETA_IND]; //theta
-        std::cout << "Initial heading: " << initial_heading_ << std::endl;
-    }
+    circle_traj_func( double vf, double r) : vf_(vf), r_(r) { }
     
     void dState ( const state_type &x , state_type &dxdt , const double  t  )
     {
-        double vlat = -amp_*w_*std::sin(w_*t);
-        double vlin = vf_*t;
-
         
-        dxdt[XD_IND] = vlin*cos(initial_heading_) + -vlat*sin(initial_heading_);
-        dxdt[YD_IND] = vlin*sin(initial_heading_) + vlat*cos(initial_heading_);
+        dxdt[XD_IND] = -vf_*sin((vf_/r_) * t);
+        dxdt[YD_IND] = vf_*cos((vf_/r_) * t);
     }
     
     
@@ -164,14 +153,14 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr msg)
 
 trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(const nav_msgs::OdometryPtr odom_msg)
 {
-    std::string amp_key, fw_vel_key, w_key;
+    std::string r_key, fw_vel_key;
     double fw_vel = .05;
-    double amp = .4;
-    double w = .5;
+    double r = .5;
 
-    if(ros::param::search("amp", amp_key))
+
+    if(ros::param::search("r", r_key))
     {
-        ros::param::get(amp_key, amp); 
+        ros::param::get(r_key, r); 
     }
     
     if(ros::param::search("fw_vel", fw_vel_key))
@@ -179,17 +168,12 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
         ros::param::get(fw_vel_key, fw_vel); 
     }
     
-    if(ros::param::search("w", w_key))
-    {
-        ros::param::get(w_key, w); 
-    }
-
-    serpentine_traj_func trajf(fw_vel,amp,w);
+    circle_traj_func trajf(fw_vel,r);
     
     traj_func* trajpntr = &trajf;
     
 
-    ni_trajectory* traj = traj_gen_bridge.generate_trajectory(odom_msg, trajpntr);
+    ni_trajectory* traj = traj_gen_bridge.generate_trajectory(trajpntr, odom_msg);
 
     trajectory_generator::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
     trajectory_msg.header.stamp = ros::Time::now();
