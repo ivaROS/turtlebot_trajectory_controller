@@ -61,15 +61,22 @@ namespace kobuki
 class circle_traj_func : public traj_func{
     double vf_; //Forward vel
     double r_;  //radius of circle
+    double initial_heading_;
 
 public:
     circle_traj_func( double vf, double r) : vf_(vf), r_(r) { }
     
+    void init ( const state_type &x0 )
+    {
+        initial_heading_ = x0[THETA_IND]; //theta
+        std::cout << "Initial heading: " << initial_heading_ << std::endl;
+    }
+
     void dState ( const state_type &x , state_type &dxdt , const double  t  )
     {
         
-        dxdt[XD_IND] = -vf_*sin((vf_/r_) * t);
-        dxdt[YD_IND] = vf_*cos((vf_/r_) * t);
+        dxdt[XD_IND] = -vf_*sin((vf_/r_) * t + initial_heading_);
+        dxdt[YD_IND] = vf_*cos((vf_/r_) * t + initial_heading_);
     }
     
     
