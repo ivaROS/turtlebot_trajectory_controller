@@ -105,6 +105,7 @@ public:
 
     odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryTester::OdomCB, this);
     trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("/desired_trajectory", 10);
+    path_publisher_ = nh_.advertise<nav_msgs::Path>("/desired_path",10);
     
     nav_msgs::OdometryPtr init_odom(new nav_msgs::Odometry);
 
@@ -117,7 +118,7 @@ private:
   ros::NodeHandle nh_;
   std::string name_;
   ros::Subscriber button_subscriber_, odom_subscriber_;
-  ros::Publisher trajectory_publisher_;
+  ros::Publisher trajectory_publisher_, path_publisher_;
   nav_msgs::OdometryPtr curOdom_;
   TrajectoryGeneratorBridge traj_gen_bridge;
 
@@ -181,6 +182,13 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
     
 
     ni_trajectory* traj = traj_gen_bridge.generate_trajectory(trajpntr, odom_msg);
+    
+    
+    std::vector<ni_trajectory> trajectories;
+    trajectories.push_back(*traj);
+    
+    traj_gen_bridge.publishPaths(path_publisher_, trajectories, 1);
+
 
     trajectory_generator::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
     trajectory_msg.header.stamp = ros::Time::now();
