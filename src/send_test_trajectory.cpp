@@ -94,9 +94,6 @@ public:
       traj_gen_bridge = *(new TrajectoryGeneratorBridge);
   };
   ~TrajectoryTester(){
-      std_msgs::Empty msg;
-      controller_disabler_.publish(msg);
-      ros::spinOnce();
   };
 
   /**
@@ -110,11 +107,6 @@ public:
     odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryTester::OdomCB, this);
     trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("/desired_trajectory", 10);
     path_publisher_ = nh_.advertise<nav_msgs::Path>("/desired_path",10);
-    controller_enabler_ = nh_.advertise<std_msgs::Empty>("/trajectory_controller/enable",5);
-    controller_disabler_ = nh_.advertise<std_msgs::Empty>("/trajectory_controller/disable",5);
-    
-    std_msgs::Empty msg;
-    controller_enabler_.publish(msg);
     
     nav_msgs::OdometryPtr init_odom(new nav_msgs::Odometry);
 
@@ -127,7 +119,7 @@ private:
   ros::NodeHandle nh_;
   std::string name_;
   ros::Subscriber button_subscriber_, odom_subscriber_;
-  ros::Publisher trajectory_publisher_, path_publisher_, controller_enabler_, controller_disabler_;
+  ros::Publisher trajectory_publisher_, path_publisher_;
   nav_msgs::OdometryPtr curOdom_;
   TrajectoryGeneratorBridge traj_gen_bridge;
 
