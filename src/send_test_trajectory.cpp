@@ -96,6 +96,7 @@ public:
   ~TrajectoryTester(){
       std_msgs::Empty msg;
       controller_disabler_.publish(msg);
+      ros::spinOnce();
   };
 
   /**
