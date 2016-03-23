@@ -75,8 +75,8 @@ public:
     void dState ( const state_type &x , state_type &dxdt , const double  t  )
     {
         
-        dxdt[YD_IND] = -vf_*sin((vf_/r_) * t - initial_heading_);
-        dxdt[XD_IND] = vf_*cos((vf_/r_) * t - initial_heading_);
+        dxdt[YD_IND] = vf_*sin(initial_heading_ - (vf_/r_) * t );
+        dxdt[XD_IND] = vf_*cos( initial_heading_ - (vf_/r_) * t );
     }
     
     
@@ -93,7 +93,10 @@ public:
   TrajectoryTester(ros::NodeHandle& nh, std::string& name) : nh_(nh), name_(name){
       traj_gen_bridge = *(new TrajectoryGeneratorBridge);
   };
-  ~TrajectoryTester(){};
+  ~TrajectoryTester(){
+      std_msgs::Empty msg;
+      controller_disabler_.publish(msg);
+  };
 
   /**
    * Set-up necessary publishers/subscribers
@@ -106,6 +109,11 @@ public:
     odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryTester::OdomCB, this);
     trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("/desired_trajectory", 10);
     path_publisher_ = nh_.advertise<nav_msgs::Path>("/desired_path",10);
+    controller_enabler_ = nh_.advertise<std_msgs::Empty>("/trajectory_controller/enable",5);
+    controller_disabler_ = nh_.advertise<std_msgs::Empty>("/trajectory_controller/disable",5);
+    
+    std_msgs::Empty msg;
+    controller_enabler_.publish(msg);
     
     nav_msgs::OdometryPtr init_odom(new nav_msgs::Odometry);
 
@@ -118,7 +126,7 @@ private:
   ros::NodeHandle nh_;
   std::string name_;
   ros::Subscriber button_subscriber_, odom_subscriber_;
-  ros::Publisher trajectory_publisher_, path_publisher_;
+  ros::Publisher trajectory_publisher_, path_publisher_, controller_enabler_, controller_disabler_;
   nav_msgs::OdometryPtr curOdom_;
   TrajectoryGeneratorBridge traj_gen_bridge;
 
@@ -148,6 +156,9 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr msg)
 
     nav_msgs::OdometryPtr odom = nav_msgs::OdometryPtr(curOdom_);
     trajectory_generator::trajectory_points trajectory = TrajectoryTester::generate_trajectory(odom);
+    
+    
+    
     trajectory_publisher_.publish(trajectory);
   }
   else

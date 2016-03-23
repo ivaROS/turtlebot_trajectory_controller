@@ -59,6 +59,7 @@
 #include <nav_msgs/Odometry.h>
 #include <trajectory_generator_ros_interface.h>
 
+#include <tf/transform_datatypes.h>
 
 namespace kobuki
 {
@@ -329,9 +330,8 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   double v = pre_point.v*(1-pre_time_fraction) + post_point.v*pre_time_fraction;
   double w = pre_point.w*(1-pre_time_fraction) + post_point.w*pre_time_fraction;
 
-  geometry_msgs::Quaternion quat;
-  quat.w = cos(theta/2);
-  quat.z = sin(theta/2);
+  //This was in the trajectory generator class.
+  geometry_msgs::Quaternion quat = tf::createQuaternionMsgFromRollPitchYaw(0, 0, theta);
 
   nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
 
