@@ -220,18 +220,23 @@ void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
 
 
 
-Eigen::Matrix2cd TrajectoryController::getComplexMatrix(double x, double y, double cosTh, double sinTh)
+Eigen::Matrix2cd TrajectoryController::getComplexMatrix(double x, double y, double quat_w, double quat_z)
 {
+  std::complex<double> phase(quat_w, quat_z);
+  phase = phase*phase;
+  
   Eigen::Matrix2cd g(2,2);
-  g.real()(0,0) = cosTh;
+  //g.real()(0,0) = phase.real();
   g.real()(0,1) = x;
   g.real()(1,0) = 0;
   g.real()(1,1) = 1;
 
-  g.imag()(0,0) = sinTh;
+  //g.imag()(0,0) = phase.imag();
   g.imag()(0,1) = y;
   g.imag()(1,0) = 0;
   g.imag()(1,1) = 0;
+  
+  g(0,0) = phase;
 
     ROS_INFO("\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", g.real()(0,0), g.imag()(0,0), g.real()(0,1), g.imag()(0,1), g.real()(1,0), g.imag()(1,0), g.real()(1,1), g.imag()(1,1));
 
