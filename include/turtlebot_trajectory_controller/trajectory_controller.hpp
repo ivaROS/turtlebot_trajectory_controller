@@ -213,14 +213,14 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
       try
       {
         // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
-        desired_trajectory_ = msg;//tfBuffer_->transform(msg, odom_frame_);
+        desired_trajectory_ = tfBuffer_->transform(msg, odom_frame_);
       }
       catch (tf2::TransformException &ex) {
           ROS_ERROR("Unable to execute trajectory: %s",ex.what());
           return;
       }
       
-      trajectory_odom_publisher_.publish(desired_trajectory_);
+      transformed_trajectory_publisher_.publish(desired_trajectory_);
       ROS_INFO_STREAM("Preparing to execute. [" << name_ <<"]");
       executing_ = true;
       curr_index_ = 0;
