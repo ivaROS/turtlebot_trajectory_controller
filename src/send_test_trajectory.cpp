@@ -61,22 +61,16 @@ namespace kobuki
 class circle_traj_func : public traj_func{
     double vf_; //Forward vel
     double r_;  //radius of circle
-    double initial_heading_;
 
 public:
     circle_traj_func( double vf, double r) : vf_(vf), r_(r) { }
     
-    void init ( const state_type &x0 )
-    {
-        initial_heading_ = x0[THETA_IND]; //theta
-        std::cout << "Initial heading: " << initial_heading_ << std::endl;
-    }
 
     void dState ( const state_type &x , state_type &dxdt , const double  t  )
     {
         
-        dxdt[YD_IND] = vf_*sin(initial_heading_ - (vf_/r_) * t );
-        dxdt[XD_IND] = vf_*cos( initial_heading_ - (vf_/r_) * t );
+        dxdt[YD_IND] = vf_*sin( - (vf_/r_) * t );
+        dxdt[XD_IND] = vf_*cos( - (vf_/r_) * t );
     }
     
     
@@ -118,6 +112,7 @@ public:
 private:
   ros::NodeHandle nh_;
   std::string name_;
+  std::string base_frame="base_link";
   ros::Subscriber button_subscriber_, odom_subscriber_;
   ros::Publisher trajectory_publisher_, path_publisher_;
   nav_msgs::OdometryPtr curOdom_;
@@ -209,7 +204,7 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
 
     trajectory_generator::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
     trajectory_msg.header.stamp = ros::Time::now();
-    trajectory_msg.header.frame_id = odom_msg->header.frame_id;
+    trajectory_msg.header.frame_id = base_frame;
     
     return trajectory_msg;
 }
