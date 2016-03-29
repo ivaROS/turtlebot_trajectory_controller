@@ -108,7 +108,7 @@ private:
   tf2_ros::TransformListener* tf_listener_;
   
   ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_, trajectory_subscriber_;
-  ros::Publisher command_publisher_, trajectory_odom_publisher_;
+  ros::Publisher command_publisher_, trajectory_odom_publisher_, transformed_trajectory_publisher_;
   double k_turn_;
   double k_drive_;
   ros::Time start_time_;
@@ -127,6 +127,7 @@ private:
     trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 10, &TrajectoryController::TrajectoryCB, this);
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
     trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("/desired_odom", 10);
+    transformed_trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("/transformed_trajectory", 10);
   }
   
   void setupParams()
@@ -219,6 +220,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
           return;
       }
       
+      trajectory_odom_publisher_.publish(desired_trajectory_);
       ROS_INFO_STREAM("Preparing to execute. [" << name_ <<"]");
       executing_ = true;
       curr_index_ = 0;
