@@ -58,8 +58,11 @@
 
 #include <nav_msgs/Odometry.h>
 #include <trajectory_generator_ros_interface.h>
-
 #include <tf/transform_datatypes.h>
+
+#include <tf2_ros/transform_listener.h>
+#include <tf2_trajectory.h>
+
 
 namespace kobuki
 {
@@ -81,15 +84,16 @@ public:
    */
   bool init()
   {
-    enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
-    disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
-    odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
-    trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 10, &TrajectoryController::TrajectoryCB, this);
-    command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
-    trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("/desired_odom", 10);
+  
+    tfBuffer_ = new tf2_ros::Buffer; //optional parameter: ros::Duration(cache time) (default=10)
+    tf_listener_ = new tf2_ros::TransformListener(*tfBuffer_);
+    
+    setupParams();
+    setupPublishersSubscribers();
+
+    
+    
     this->enable();
-    k_drive_=1;
-    k_turn_=1;
     curr_index_ = -1;
     executing_ = false;
     
@@ -99,15 +103,42 @@ public:
 private:
   ros::NodeHandle nh_;
   std::string name_;
+  
+  tf2_ros::Buffer* tfBuffer_;
+  tf2_ros::TransformListener* tf_listener_;
+  
   ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_, trajectory_subscriber_;
   ros::Publisher command_publisher_, trajectory_odom_publisher_;
   double k_turn_;
   double k_drive_;
   ros::Time start_time_;
+  std::string odom_frame_, base_frame_;
   
   trajectory_generator::trajectory_points desired_trajectory_;
   size_t curr_index_;
   bool executing_;
+  
+  
+  void setupPublishersSubscribers()
+  {
+    enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
+    disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
+    odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
+    trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 10, &TrajectoryController::TrajectoryCB, this);
+    command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
+    trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("/desired_odom", 10);
+  }
+  
+  void setupParams()
+  {
+    nh_.param<std::string>("odom_frame", odom_frame_, "odom");
+    nh_.param<std::string>("base_frame", base_frame_, "base_link");
+    nh_.param<double>("k_drive", k_drive_, 1.0);
+    nh_.param<double>("k_turn", k_turn_, 1.0);
+
+  }
+
+  
 
   /**
    * @brief ROS logging output for enabling the controller
@@ -177,8 +208,18 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
   {
     if(!executing_)
     {
+
+      try
+      {
+        // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
+        desired_trajectory_ = tfBuffer_->transform(msg, odom_frame_);
+      }
+      catch (tf2::TransformException &ex) {
+          ROS_ERROR("Unable to execute trajectory: %s",ex.what());
+          return;
+      }
+      
       ROS_INFO_STREAM("Preparing to execute. [" << name_ <<"]");
-      desired_trajectory_ = msg;
       executing_ = true;
       curr_index_ = 0;
     }
