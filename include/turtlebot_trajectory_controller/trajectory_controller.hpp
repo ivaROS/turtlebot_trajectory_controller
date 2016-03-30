@@ -62,6 +62,7 @@
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_trajectory.h>
+#include <boost/thread/mutex.hpp>
 
 
 namespace kobuki
@@ -86,7 +87,8 @@ public:
   {
   
     tfBuffer_ = new tf2_ros::Buffer; //optional parameter: ros::Duration(cache time) (default=10)
-    tf_listener_ = new tf2_ros::TransformListener(*tfBuffer_);
+    bool dedicated_thread = false;  //Using a dedicated thread allows using Timeouts in transform requests
+    tf_listener_ = new tf2_ros::TransformListener(*tfBuffer_,dedicated_thread);
     
     setupParams();
     setupPublishersSubscribers();
@@ -117,6 +119,8 @@ private:
   trajectory_generator::trajectory_points desired_trajectory_;
   size_t curr_index_;
   bool executing_;
+  
+  boost::mutex trajectory_mutex_;
   
   
   void setupPublishersSubscribers()
@@ -204,11 +208,14 @@ void TrajectoryController::disableCB(const std_msgs::EmptyConstPtr msg)
 
 void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points msg)
 {
+  boost::lock_guard<boost::mutex> guard(trajectory_mutex_);
   ROS_INFO_STREAM("Trajectory received. [" << name_ <<"]");
   if (this->getState())
   {
-    if(!executing_)
+    if(executing_)
     {
+      ROS_INFO("Preempting previous trajectory");
+    }
 
       try
       {
@@ -224,11 +231,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
       ROS_INFO_STREAM("Preparing to execute. [" << name_ <<"]");
       executing_ = true;
       curr_index_ = 0;
-    }
-    else
-    {
-      ROS_INFO_STREAM("Already executing trajectory, new trajectory ignored. [" << name_ <<"]");
-    }
+    
   }
   else
   {
@@ -240,6 +243,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
 
 void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
 {
+  boost::lock_guard<boost::mutex> guard(trajectory_mutex_);
   if (this->getState() && executing_) // check, if the controller is active
   {
   ROS_INFO_STREAM("Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
