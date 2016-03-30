@@ -133,7 +133,7 @@ private:
   void setupParams()
   {
     nh_.param<std::string>("odom_frame", odom_frame_, "odom");
-    nh_.param<std::string>("base_frame", base_frame_, "base_link");
+    nh_.param<std::string>("/mobile_base/base_frame", base_frame_, "base_footprint");
     nh_.param<double>("k_drive", k_drive_, 1.0);
     nh_.param<double>("k_turn", k_turn_, 1.0);
 
