@@ -205,7 +205,7 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
 
 
     trajectory_generator::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
-    trajectory_msg.header.stamp = ros::Time::now();
+    trajectory_msg.header.stamp = odom_msg->header.stamp;
     
     return trajectory_msg;
 }
