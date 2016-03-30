@@ -105,6 +105,8 @@ public:
     nav_msgs::OdometryPtr init_odom(new nav_msgs::Odometry);
 
     curOdom_ = init_odom;
+    
+    nh_.param<std::string>("/mobile_base/base_frame", base_frame, "base_footprint");
 
     return true;
   };
@@ -112,7 +114,7 @@ public:
 private:
   ros::NodeHandle nh_;
   std::string name_;
-  std::string base_frame="base_link";
+  std::string base_frame;
   ros::Subscriber button_subscriber_, odom_subscriber_;
   ros::Publisher trajectory_publisher_, path_publisher_;
   nav_msgs::OdometryPtr curOdom_;
@@ -193,7 +195,7 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
     
     traj_gen_bridge.setDefaultParams(params);
 
-    ni_trajectory* traj = traj_gen_bridge.generate_trajectory(trajpntr, odom_msg);
+    ni_trajectory* traj = traj_gen_bridge.generate_trajectory(trajpntr);
     
     
     std::vector<ni_trajectory> trajectories;
