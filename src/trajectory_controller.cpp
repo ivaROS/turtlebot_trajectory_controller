@@ -81,7 +81,7 @@ namespace kobuki
   
     tfBuffer_ = new tf2_ros::Buffer; //optional parameter: ros::Duration(cache time) (default=10)
     bool dedicated_thread = false;  //Using a dedicated thread allows using Timeouts in transform requests
-    tf_listener_ = new tf2_ros::TransformListener(*tfBuffer_);
+    tf_listener_ = new tf2_ros::TransformListener(*tfBuffer_, dedicated_thread);
     
     setupParams();
     setupPublishersSubscribers();
@@ -154,7 +154,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
   ROS_INFO_STREAM("Trajectory received. [" << name_ <<"]");
   if (this->getState())
   {
-    if(executing_)
+    if(!executing_)
     {
       ROS_INFO("Preempting previous trajectory");
     }
@@ -174,6 +174,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
       executing_ = true;
       curr_index_ = 0;
     
+
   }
   else
   {
