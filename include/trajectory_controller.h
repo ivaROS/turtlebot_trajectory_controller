@@ -53,16 +53,13 @@
 #include <yocs_controllers/default_controller.hpp>
 #include <Eigen/Dense>
 #include <geometry_msgs/Twist.h>
-#include <geometry_msgs/Point.h>
-#include <geometry_msgs/Quaternion.h>
 
 #include <nav_msgs/Odometry.h>
 #include <trajectory_generator_ros_interface.h>
 #include <tf/transform_datatypes.h>
 
 #include <tf2_ros/transform_listener.h>
-#include <tf2_trajectory.h>
-#include <boost/thread/mutex.hpp>
+
 
 
 namespace kobuki
