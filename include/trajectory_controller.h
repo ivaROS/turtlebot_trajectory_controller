@@ -80,7 +80,7 @@ public:
    * Set-up necessary publishers/subscribers
    * @return true, if successful
    */
-  bool init();
+  virtual bool init();
 
 protected:
   ros::NodeHandle nh_;
@@ -102,9 +102,9 @@ protected:
   
   
   
-  void setupPublishersSubscribers();
+  virtual void setupPublishersSubscribers();
   
-  void setupParams();
+  virtual void setupParams();
 
   
 
