@@ -96,7 +96,7 @@ protected:
   ros::Time start_time_;
   std::string odom_frame_id_, base_frame_id_;
   
-  trajectory_generator::trajectory_points desired_trajectory_;
+  trajectory_generator::trajectory_pointsPtr desired_trajectory_;
   size_t curr_index_;
   bool executing_;
   
@@ -126,7 +126,7 @@ protected:
    */
   void OdomCB(const nav_msgs::OdometryPtr msg);
   
-  void TrajectoryCB(const trajectory_generator::trajectory_points msg);
+  void TrajectoryCB(const trajectory_generator::trajectory_pointsPtr msg);
   
 
   nav_msgs::OdometryPtr getDesiredState(std_msgs::Header header);
