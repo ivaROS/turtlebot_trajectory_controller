@@ -5,22 +5,28 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         pluginlib
                                         std_msgs
                                         kobuki_msgs
-                                        yocs_controllers cmake_modules geometry_msgs 
-                              trajectory_generator
+                                        yocs_controllers 
+                                        cmake_modules 
+                                        geometry_msgs 
+                                        trajectory_generator
+                                        tf2_ros
+                                        tf2
                                         )
 ##Note: on indigo, must be 'Eigen3' here and under 'include_directories'. Hydro, just 'Eigen'
 find_package(Eigen REQUIRED)
 
 catkin_package(INCLUDE_DIRS include
-               LIBRARIES trajectory_controller_nodelet
+               LIBRARIES trajectory_controller trajectory_controller_nodelet 
                CATKIN_DEPENDS roscpp
                               nodelet
                               pluginlib
                               std_msgs
                               kobuki_msgs
-                              yocs_controllers geometry_msgs 
-
+                              yocs_controllers 
+                              geometry_msgs 
                               trajectory_generator
+                              tf2_ros
+                              tf2
                               )
 
 include_directories(
