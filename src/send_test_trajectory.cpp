@@ -42,6 +42,7 @@
 #include <nav_msgs/Odometry.h>
 #include <kobuki_msgs/ButtonEvent.h>
 #include <trajectory_generator_ros_interface.h>
+//#include <signal.h>
 
 
 
@@ -216,21 +217,33 @@ void TrajectoryTester::OdomCB(const nav_msgs::OdometryPtr msg)
 {
 
   curOdom_ = msg;
-  }
+}
 
+/*
+void mySigintHandler(int sig)
+{
+  // Do some custom action.
+  // For example, publish a stop message to some other nodes.
+  
+  // All the default sigint handler does is call shutdown()
+  ros::shutdown();
+}
+
+*/
 
 } // namespace kobuki
 // %EndTag(FULLTEXT)%
 
 
-
+//http://wiki.ros.org/roscpp/Overview/Initialization%20and%20Shutdown
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "test_trajectory_sender");
+    ros::init(argc, argv, "test_trajectory_sender"); //, ros::init_options::NoSigintHandler);
     ros::NodeHandle nh;
     std::string name = ros::this_node::getName();
     kobuki::TrajectoryTester tester(nh,name);
     
+    //signal(SIGINT, mySigintHandler);
 
     if (tester.init())
     {
