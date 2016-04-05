@@ -57,7 +57,7 @@
 #include <nav_msgs/Odometry.h>
 #include <trajectory_generator_ros_interface.h>
 #include <tf/transform_datatypes.h>
-
+#include <tf2_trajectory.h>
 #include <tf2_ros/transform_listener.h>
 
 

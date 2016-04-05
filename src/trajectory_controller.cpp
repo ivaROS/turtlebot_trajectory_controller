@@ -42,6 +42,8 @@
 ** Includes
 *****************************************************************************/
 // %Tag(FULLTEXT)%
+#include "trajectory_controller.h"
+
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
 #include <yocs_controllers/default_controller.hpp>
@@ -58,7 +60,9 @@
 #include <tf2_trajectory.h>
 
 
-#include "trajectory_controller.h"
+
+
+
 
 namespace kobuki
 {
