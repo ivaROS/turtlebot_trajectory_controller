@@ -151,7 +151,7 @@ void TrajectoryController::disableCB(const std_msgs::EmptyConstPtr msg)
 };
 
 
-void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_pointsPtr msg)
+void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points& msg)
 {
 
   ROS_INFO_STREAM("Trajectory received. [" << name_ <<"]");
@@ -201,7 +201,7 @@ void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
     command_publisher_.publish(command);
     ROS_INFO_STREAM("Command: " << command.linear.x <<"m/s, " << command.angular.z << "rad/s");
     
-    if(curr_index_ == desired_trajectory_->points.size()-1)
+    if(curr_index_ == desired_trajectory_.points.size()-1)
     {
         executing_ = false;
         curr_index_ = -1;
@@ -297,28 +297,28 @@ geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr curr
 nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header header)
 {
   
-  ros::Duration elapsed_time = header.stamp - desired_trajectory_->header.stamp;
+  ros::Duration elapsed_time = header.stamp - desired_trajectory_.header.stamp;
   double t = elapsed_time.toSec();
 
   //This 'should' update curr_index to refer to the last trajectory point before the desired time.
-  for(; curr_index_ < desired_trajectory_->points.size()-1 && desired_trajectory_->points[curr_index_+1].time < elapsed_time; curr_index_++);
+  for(; curr_index_ < desired_trajectory_.points.size()-1 && desired_trajectory_.points[curr_index_+1].time < elapsed_time; curr_index_++);
 
-  ROS_INFO_STREAM("Index: " << curr_index_ << "; # points: " << desired_trajectory_->points.size()); 
+  ROS_INFO_STREAM("Index: " << curr_index_ << "; # points: " << desired_trajectory_.points.size()); 
  
   //This handles the case where we've reached the end of the trajectory time
-  int post_index = std::min(curr_index_+1, desired_trajectory_->points.size()-1);
+  int post_index = std::min(curr_index_+1, desired_trajectory_.points.size()-1);
   
   ROS_INFO_STREAM("Preindex: " << curr_index_ << "; postindex: " << post_index);  
  
-  trajectory_generator::trajectory_point pre_point = desired_trajectory_->points[curr_index_];
-  trajectory_generator::trajectory_point post_point = desired_trajectory_->points[post_index];
+  trajectory_generator::trajectory_point pre_point = desired_trajectory_.points[curr_index_];
+  trajectory_generator::trajectory_point post_point = desired_trajectory_.points[post_index];
   
   ros::Duration pre_time = elapsed_time - pre_point.time;
   ros::Duration period = post_point.time - pre_point.time;
   
   
   double pre_time_fraction = 1;
-  if(curr_index_ < desired_trajectory_->points.size()-1)
+  if(curr_index_ < desired_trajectory_.points.size()-1)
   {
     pre_time_fraction = pre_time.toSec()/period.toSec();
   }
@@ -336,7 +336,7 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
 
   // Header
   odom->header.stamp = header.stamp;
-  odom->header.frame_id = desired_trajectory_->header.frame_id;
+  odom->header.frame_id = desired_trajectory_.header.frame_id;
 
   // Position
   odom->pose.pose.position.x = x;
