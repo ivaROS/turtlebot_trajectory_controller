@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         )
 ##Note: on indigo, must be 'Eigen3' here and under 'include_directories'. Hydro, just 'Eigen'
 find_package(Eigen REQUIRED)
+find_package(Boost REQUIRED COMPONENTS thread)
 
 catkin_package(INCLUDE_DIRS include
                LIBRARIES trajectory_controller trajectory_controller_nodelet 
@@ -27,6 +28,8 @@ catkin_package(INCLUDE_DIRS include
                               trajectory_generator
                               tf2_ros
                               tf2
+               DEPENDS        Boost
+                              Eigen
                               )
 
 include_directories(

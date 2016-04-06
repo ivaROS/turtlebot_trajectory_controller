@@ -157,26 +157,33 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
   ROS_INFO_STREAM("Trajectory received. [" << name_ <<"]");
   if (this->getState())
   {
-    if(!executing_)
+    if(executing_)
     {
       ROS_INFO("Preempting previous trajectory");
     }
+    
 
-      try
+    try
+    {
+      //Lock trajectory mutex while updating trajectory
       {
-        // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
-        desired_trajectory_ = tfBuffer_->transform(msg, odom_frame_id_);
-        ROS_INFO_STREAM("Successfully transformed trajectory from '" << msg.header.frame_id << "' to '" << odom_frame_id_);
-      }
-      catch (tf2::TransformException &ex) {
-          ROS_ERROR("Unable to execute trajectory: %s",ex.what());
-          return;
+        boost::mutex::scoped_lock lock(trajectory_mutex_);
+      
+        desired_trajectory_ = tfBuffer_->transform(msg, odom_frame_id_);  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
       }
       
-      transformed_trajectory_publisher_.publish(desired_trajectory_);
-      ROS_INFO_STREAM("Preparing to execute. [" << name_ <<"]");
-      executing_ = true;
-      curr_index_ = 0;
+      ROS_INFO_STREAM("Successfully transformed trajectory from '" << msg.header.frame_id << "' to '" << odom_frame_id_);
+    }
+    catch (tf2::TransformException &ex) {
+        ROS_ERROR("Unable to execute trajectory: %s",ex.what());
+        return;
+    }
+      
+      
+    transformed_trajectory_publisher_.publish(desired_trajectory_);
+    ROS_INFO_STREAM("Preparing to execute. [" << name_ <<"]");
+    executing_ = true;
+    curr_index_ = 0;
     
 
   }
@@ -197,15 +204,10 @@ void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
   
     nav_msgs::OdometryPtr desired = TrajectoryController::getDesiredState(msg->header);
     trajectory_odom_publisher_.publish(desired);
+    
     geometry_msgs::Twist command = TrajectoryController::ControlLaw(msg, desired);
     command_publisher_.publish(command);
     ROS_INFO_STREAM("Command: " << command.linear.x <<"m/s, " << command.angular.z << "rad/s");
-    
-    if(curr_index_ == desired_trajectory_.points.size()-1)
-    {
-        executing_ = false;
-        curr_index_ = -1;
-    }
   }
 
 }
@@ -296,6 +298,7 @@ geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr curr
 
 nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header header)
 {
+  boost::mutex::scoped_lock lock(trajectory_mutex_);  //While computing desired state, don't change the trajectory
   
   ros::Duration elapsed_time = header.stamp - desired_trajectory_.header.stamp;
   double t = elapsed_time.toSec();
@@ -350,6 +353,12 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header hea
   odom->twist.twist.angular.z = w;
 
   ROS_INFO_STREAM("Desired@ " << t << "s: (" << x << "," << y << ") and " << quat.w <<"," << quat.z);
+  
+  if(curr_index_ == desired_trajectory_.points.size()-1)
+  {
+      executing_ = false;
+      curr_index_ = -1;
+  }
 
   return odom;
 };

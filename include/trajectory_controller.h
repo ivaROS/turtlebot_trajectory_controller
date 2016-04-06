@@ -100,6 +100,7 @@ protected:
   size_t curr_index_;
   bool executing_;
   
+  boost::mutex trajectory_mutex_;
   
   
   virtual void setupPublishersSubscribers();
