@@ -84,8 +84,7 @@ namespace kobuki
   {
   
     tfBuffer_ = new tf2_ros::Buffer; //optional parameter: ros::Duration(cache time) (default=10)
-    bool dedicated_thread = false;  //Using a dedicated thread allows using Timeouts in transform requests
-    tf_listener_ = new tf2_ros::TransformListener(*tfBuffer_, dedicated_thread);
+    tf_listener_ = new tf2_ros::TransformListener(*tfBuffer_);
     
     setupParams();
     setupPublishersSubscribers();
