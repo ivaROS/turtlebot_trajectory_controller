@@ -100,8 +100,9 @@ protected:
   size_t curr_index_;
   bool executing_;
   
+  nav_msgs::OdometryPtr curr_odom_;
   boost::mutex trajectory_mutex_;
-  
+  boost::mutex odom_mutex_;
   
   virtual void setupPublishersSubscribers();
   

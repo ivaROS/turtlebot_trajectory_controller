@@ -197,7 +197,11 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
 
 void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
 {
-
+  {
+    boost::mutex::scoped_lock lock(odom_mutex_);
+    curr_odom_ = msg;
+  }
+  
   if (this->getState() && executing_) // check, if the controller is active
   {
   ROS_INFO_STREAM("Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
