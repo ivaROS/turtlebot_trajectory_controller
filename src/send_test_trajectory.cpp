@@ -70,8 +70,8 @@ public:
     void dState ( const state_type &x , state_type &dxdt , const double  t  )
     {
         
-        dxdt[YD_IND] = vf_*sin( - (vf_/r_) * t );
-        dxdt[XD_IND] = vf_*cos( - (vf_/r_) * t );
+        dxdt[near_identity::YD_IND] = vf_*sin( - (vf_/r_) * t );
+        dxdt[near_identity::XD_IND] = vf_*cos( - (vf_/r_) * t );
     }
     
     
