@@ -183,7 +183,7 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
     traj_func* trajpntr = &trajf;
     
     
-    traj_params params = traj_gen_bridge.getDefaultParams();
+    traj_params* params = traj_gen_bridge.getDefaultParams();
     
     std::string key;
     double tf;
@@ -191,16 +191,14 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
     if(ros::param::search("tf", key))
     {
         ros::param::get(key, tf); 
-        params.tf = tf;
+        params->tf = tf;
     }
-    
-    traj_gen_bridge.setDefaultParams(params);
 
     ni_trajectory* traj = traj_gen_bridge.generate_trajectory(trajpntr);
     traj->frame_id = base_frame_id_;
     
-    std::vector<ni_trajectory> trajectories;
-    trajectories.push_back(*traj);
+    std::vector<ni_trajectory*> trajectories;
+    trajectories.push_back(traj);
     
     traj_gen_bridge.publishPaths(path_publisher_, trajectories, 1);
 
