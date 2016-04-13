@@ -104,6 +104,9 @@ protected:
   boost::mutex trajectory_mutex_;
   boost::mutex odom_mutex_;
   
+  //message_filters::Subscriber<trajectory_generator::trajectory_points> trajectory_subscriber_;
+  //tf::MessageFilter<trajectory_generator::trajectory_points> * tf_filter_;
+  
   virtual void setupPublishersSubscribers();
   
   virtual void setupParams();
