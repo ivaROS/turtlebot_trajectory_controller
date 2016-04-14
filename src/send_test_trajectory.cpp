@@ -42,7 +42,7 @@
 #include <nav_msgs/Odometry.h>
 #include <kobuki_msgs/ButtonEvent.h>
 #include <trajectory_generator_ros_interface.h>
-//#include <signal.h>
+#include <memory>
 
 
 
@@ -180,19 +180,6 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
     
     circle_traj_func trajf(fw_vel,r);
     
-    traj_func* trajpntr = &trajf;
-    
-    
-    traj_params params = traj_gen_bridge.getDefaultParams();
-    
-    std::string key;
-    double tf;
-    
-    if(ros::param::search("tf", key))
-    {
-        ros::param::get(key, tf); 
-        params.tf = tf;
-    }
 
     ni_trajectory* traj = new ni_trajectory();
     traj->header.frame_id = base_frame_id_;
@@ -200,6 +187,17 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
     
     traj->trajpntr =  &trajf;
     traj->x0_ = traj_gen_bridge.initState();
+    traj->params = std::make_shared<traj_params>(traj_gen_bridge.getDefaultParams());
+      
+      
+    std::string key;
+    double tf;
+    
+    if(ros::param::search("tf", key))
+    {
+        ros::param::get(key, tf); 
+        traj->params->tf = tf;
+    }
       
     traj_gen_bridge.generate_trajectory(traj);
     

@@ -82,6 +82,9 @@ public:
    */
   virtual bool init();
 
+private:
+  std::string private_name_ = "RTController";
+
 protected:
   ros::NodeHandle nh_;
   std::string name_;
