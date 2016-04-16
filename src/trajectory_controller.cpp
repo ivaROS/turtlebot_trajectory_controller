@@ -59,7 +59,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_trajectory.h>
 
-
+#include <memory>
 
 
 
@@ -82,9 +82,9 @@ namespace kobuki
    */
   bool TrajectoryController::init()
   {
-  
-    tfBuffer_ = new tf2_ros::Buffer; //optional parameter: ros::Duration(cache time) (default=10)
-    tf_listener_ = new tf2_ros::TransformListener(*tfBuffer_);
+    //Need to delete these on shutdown; or use use shared pointers
+    tfBuffer_ = std::make_shared<tf2_ros::Buffer>(); //optional parameter: ros::Duration(cache time) (default=10)
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
     
     setupParams();
     setupPublishersSubscribers();

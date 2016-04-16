@@ -59,8 +59,11 @@
 #include <tf/transform_datatypes.h>
 #include <tf2_trajectory.h>
 #include <tf2_ros/transform_listener.h>
+#include <memory>
 
 
+typedef std::shared_ptr<tf2_ros::Buffer> tf_buffer_ptr;
+typedef std::shared_ptr<tf2_ros::TransformListener> transform_listener_ptr;
 
 namespace kobuki
 {
@@ -89,8 +92,8 @@ protected:
   ros::NodeHandle nh_;
   std::string name_;
   
-  tf2_ros::Buffer* tfBuffer_;
-  tf2_ros::TransformListener* tf_listener_;
+  tf_buffer_ptr tfBuffer_;
+  transform_listener_ptr tf_listener_;
   
   ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_, trajectory_subscriber_;
   ros::Publisher command_publisher_, trajectory_odom_publisher_, transformed_trajectory_publisher_;

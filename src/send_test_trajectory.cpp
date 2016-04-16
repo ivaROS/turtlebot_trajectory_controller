@@ -86,7 +86,6 @@ class TrajectoryTester
 {
 public:
   TrajectoryTester(ros::NodeHandle& nh, std::string& name) : nh_(nh), name_(name){
-      traj_gen_bridge = *(new TrajectoryGeneratorBridge);
   };
   ~TrajectoryTester(){
   };
@@ -254,7 +253,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        ROS_ERROR_STREAM("Couldn't initialise KeyOpCore!");
+        ROS_ERROR_STREAM("Couldn't initialise test_trajectory_sender!");
     }
 
     ROS_INFO_STREAM("Program exiting");
