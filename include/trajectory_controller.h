@@ -120,24 +120,24 @@ protected:
    * @brief ROS logging output for enabling the controller
    * @param msg incoming topic message
    */
-  void enableCB(const std_msgs::EmptyConstPtr msg);
+  void enableCB(const std_msgs::EmptyConstPtr& msg);
 
   /**
    * @brief ROS logging output for disabling the controller
    * @param msg incoming topic message
    */
-  void disableCB(const std_msgs::EmptyConstPtr msg);
+  void disableCB(const std_msgs::EmptyConstPtr& msg);
 
   /**
    * @brief Turns on/off a LED, when a bumper is pressed/released
    * @param msg incoming topic message
    */
-  void OdomCB(const nav_msgs::OdometryPtr msg);
+  virtual void OdomCB(const nav_msgs::OdometryPtr& msg);
   
   void TrajectoryCB(const trajectory_generator::trajectory_points& msg);
   
 
-  nav_msgs::OdometryPtr getDesiredState(std_msgs::Header header);
+  nav_msgs::OdometryPtr getDesiredState(std_msgs::Header& header);
 
   Eigen::Matrix2cd getComplexMatrix(double x, double y, double cosTh, double sinTh);
 

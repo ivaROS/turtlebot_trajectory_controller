@@ -124,7 +124,7 @@ namespace kobuki
   }
 
   
-void TrajectoryController::enableCB(const std_msgs::EmptyConstPtr msg)
+void TrajectoryController::enableCB(const std_msgs::EmptyConstPtr& msg)
 {
   if (this->enable())
   {
@@ -137,7 +137,7 @@ void TrajectoryController::enableCB(const std_msgs::EmptyConstPtr msg)
   }
 };
 
-void TrajectoryController::disableCB(const std_msgs::EmptyConstPtr msg)
+void TrajectoryController::disableCB(const std_msgs::EmptyConstPtr& msg)
 {
   if (this->disable())
   {
@@ -200,7 +200,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
 }
 
 
-void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr msg)
+void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr& msg)
 {
   {
     boost::mutex::scoped_lock lock(odom_mutex_);
@@ -303,7 +303,7 @@ geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr curr
     return command;
 }
 
-nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header header)
+nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header& header)
 {
   boost::mutex::scoped_lock lock(trajectory_mutex_);  //While computing desired state, don't change the trajectory
   

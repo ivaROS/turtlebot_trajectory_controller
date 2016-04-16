@@ -125,21 +125,21 @@ private:
    * @brief ROS logging output for enabling the controller
    * @param msg incoming topic message
    */
-  void buttonCB(const kobuki_msgs::ButtonEventPtr msg);
+  void buttonCB(const kobuki_msgs::ButtonEventPtr& msg);
 
  
   /**
    * @brief Turns on/off a LED, when a bumper is pressed/released
    * @param msg incoming topic message
    */
-  void OdomCB(const nav_msgs::OdometryPtr msg);
+  void OdomCB(const nav_msgs::OdometryPtr& msg);
 
-  trajectory_generator::trajectory_points generate_trajectory(const nav_msgs::OdometryPtr msg);
+  trajectory_generator::trajectory_points generate_trajectory(const nav_msgs::OdometryPtr& msg);
   
 
 };
 
-void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr msg)
+void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr& msg)
 {
   if (msg->button == kobuki_msgs::ButtonEvent::Button0 && msg->state == kobuki_msgs::ButtonEvent::RELEASED )
   {
@@ -161,7 +161,7 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr msg)
 
 
 
-trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(const nav_msgs::OdometryPtr odom_msg)
+trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(const nav_msgs::OdometryPtr& odom_msg)
 {
     std::string r_key, fw_vel_key;
     double fw_vel = .05;
@@ -178,14 +178,14 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
         ros::param::get(fw_vel_key, fw_vel); 
     }
     
-    circle_traj_func trajf(fw_vel,r);
+    //circle_traj_func trajf(fw_vel,r);
     
 
-    ni_trajectory* traj = new ni_trajectory();
+    ni_trajectory_ptr traj = std::make_shared<ni_trajectory>();
     traj->header.frame_id = base_frame_id_;
     traj->header.stamp = odom_msg->header.stamp;
     
-    traj->trajpntr =  &trajf;
+    traj->trajpntr = std::make_shared<circle_traj_func>(fw_vel,r);
     traj->x0_ = traj_gen_bridge.initState();
     traj->params = std::make_shared<traj_params>(traj_gen_bridge.getDefaultParams());
       
@@ -203,7 +203,7 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
     
 
     
-    std::vector<ni_trajectory*> trajectories;
+    std::vector<ni_trajectory_ptr> trajectories;
     trajectories.push_back(traj);
     
     traj_gen_bridge.publishPaths(path_publisher_, trajectories, 1);
@@ -216,7 +216,7 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(co
 
 
 
-void TrajectoryTester::OdomCB(const nav_msgs::OdometryPtr msg)
+void TrajectoryTester::OdomCB(const nav_msgs::OdometryPtr& msg)
 {
 
   curOdom_ = msg;
