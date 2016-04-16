@@ -104,8 +104,8 @@ namespace kobuki
     
     enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
     disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
-    odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
-    trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 10, &TrajectoryController::TrajectoryCB, this);
+    odom_subscriber_ = nh_.subscribe("/odom", 10, &TrajectoryController::OdomCB, this);
+    trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 1, &TrajectoryController::TrajectoryCB, this);
 
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
     trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("/desired_odom", 10);
@@ -124,7 +124,7 @@ namespace kobuki
   }
 
   
-void TrajectoryController::enableCB(const std_msgs::EmptyConstPtr& msg)
+void TrajectoryController::enableCB(const std_msgs::Empty::ConstPtr& msg)
 {
   if (this->enable())
   {
@@ -137,7 +137,7 @@ void TrajectoryController::enableCB(const std_msgs::EmptyConstPtr& msg)
   }
 };
 
-void TrajectoryController::disableCB(const std_msgs::EmptyConstPtr& msg)
+void TrajectoryController::disableCB(const std_msgs::Empty::ConstPtr& msg)
 {
   if (this->disable())
   {
@@ -200,7 +200,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
 }
 
 
-void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr& msg)
+void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
 {
   {
     boost::mutex::scoped_lock lock(odom_mutex_);
@@ -211,12 +211,12 @@ void TrajectoryController::OdomCB(const nav_msgs::OdometryPtr& msg)
   {
     ROS_DEBUG_STREAM_NAMED(private_name_, "Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
   
-    nav_msgs::OdometryPtr desired = TrajectoryController::getDesiredState(msg->header);
+    const nav_msgs::Odometry::ConstPtr desired = TrajectoryController::getDesiredState(msg->header);
     trajectory_odom_publisher_.publish(desired);
     
-    geometry_msgs::Twist command = TrajectoryController::ControlLaw(msg, desired);
+    geometry_msgs::Twist::ConstPtr command = TrajectoryController::ControlLaw(msg, desired);
     command_publisher_.publish(command);
-    ROS_DEBUG_STREAM_NAMED(private_name_, "Command: " << command.linear.x <<"m/s, " << command.angular.z << "rad/s");
+    ROS_DEBUG_STREAM_NAMED(private_name_, "Command: " << command->linear.x <<"m/s, " << command->angular.z << "rad/s");
   }
 
 }
@@ -248,7 +248,7 @@ Eigen::Matrix2cd TrajectoryController::getComplexMatrix(double x, double y, doub
 
 
 
-geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr current, nav_msgs::OdometryPtr desired)
+geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::Odometry::ConstPtr& current, const nav_msgs::Odometry::ConstPtr& desired)
 {
     geometry_msgs::Point position = current->pose.pose.position;
     geometry_msgs::Quaternion orientation = current->pose.pose.orientation;
@@ -294,16 +294,18 @@ geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr curr
     geometry_msgs::Vector3 angular;
     angular.z = v_ang;
 
-    geometry_msgs::Twist command;
-    command.linear = linear;
-    command.angular = angular;
+    geometry_msgs::Twist::Ptr command(new geometry_msgs::Twist);
+    command->linear = linear;
+    command->angular = angular;
+    
+    geometry_msgs::Twist::ConstPtr const_command = command;
 
     ROS_DEBUG_STREAM_NAMED(private_name_, "Linear Error: " << x_error << "m, Angular Error: " << theta_error << "rad");
     
-    return command;
+    return const_command;
 }
 
-nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header& header)
+nav_msgs::OdometryPtr TrajectoryController::getDesiredState(const std_msgs::Header& header)
 {
   nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
   trajectory_generator::trajectory_point pre_point, post_point;

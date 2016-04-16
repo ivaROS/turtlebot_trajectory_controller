@@ -106,7 +106,7 @@ protected:
   size_t curr_index_;
   bool executing_;
   
-  nav_msgs::OdometryPtr curr_odom_;
+  nav_msgs::Odometry::ConstPtr curr_odom_;
   boost::mutex trajectory_mutex_;
   boost::mutex odom_mutex_;
   
@@ -123,28 +123,28 @@ protected:
    * @brief ROS logging output for enabling the controller
    * @param msg incoming topic message
    */
-  void enableCB(const std_msgs::EmptyConstPtr& msg);
+  void enableCB(const std_msgs::Empty::ConstPtr& msg);
 
   /**
    * @brief ROS logging output for disabling the controller
    * @param msg incoming topic message
    */
-  void disableCB(const std_msgs::EmptyConstPtr& msg);
+  void disableCB(const std_msgs::Empty::ConstPtr& msg);
 
   /**
    * @brief Turns on/off a LED, when a bumper is pressed/released
    * @param msg incoming topic message
    */
-  virtual void OdomCB(const nav_msgs::OdometryPtr& msg);
+  virtual void OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
   
   void TrajectoryCB(const trajectory_generator::trajectory_points& msg);
   
 
-  nav_msgs::OdometryPtr getDesiredState(std_msgs::Header& header);
+  nav_msgs::OdometryPtr getDesiredState(const std_msgs::Header& header);
 
   Eigen::Matrix2cd getComplexMatrix(double x, double y, double cosTh, double sinTh);
 
-  geometry_msgs::Twist ControlLaw(nav_msgs::OdometryPtr current, nav_msgs::OdometryPtr desired);
+  geometry_msgs::Twist::ConstPtr ControlLaw(const nav_msgs::Odometry::ConstPtr& current, const nav_msgs::Odometry::ConstPtr& desired);
 
 };
 
