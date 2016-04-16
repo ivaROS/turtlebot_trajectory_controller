@@ -175,6 +175,8 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
         boost::mutex::scoped_lock lock(trajectory_mutex_);
       
         desired_trajectory_ = tfBuffer_->transform(msg, odom_frame_id_);  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
+        curr_index_ = 0;
+        executing_ = true;
       }
       
       ROS_DEBUG_STREAM_NAMED(private_name_, "Successfully transformed trajectory from '" << msg.header.frame_id << "' to '" << odom_frame_id_);
@@ -187,8 +189,6 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
       
     transformed_trajectory_publisher_.publish(desired_trajectory_);
     ROS_DEBUG_STREAM_NAMED(private_name_, "Preparing to execute.");
-    executing_ = true;
-    curr_index_ = 0;
     
 
   }
@@ -305,32 +305,48 @@ geometry_msgs::Twist TrajectoryController::ControlLaw(nav_msgs::OdometryPtr curr
 
 nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header& header)
 {
-  boost::mutex::scoped_lock lock(trajectory_mutex_);  //While computing desired state, don't change the trajectory
-  
-  ros::Duration elapsed_time = header.stamp - desired_trajectory_.header.stamp;
-  double t = elapsed_time.toSec();
-
-  //This 'should' update curr_index to refer to the last trajectory point before the desired time.
-  for(; curr_index_ < desired_trajectory_.points.size()-1 && desired_trajectory_.points[curr_index_+1].time < elapsed_time; curr_index_++);
-
-  ROS_DEBUG_STREAM_NAMED(private_name_, "Index: " << curr_index_ << "; # points: " << desired_trajectory_.points.size()); 
- 
-  //This handles the case where we've reached the end of the trajectory time
-  int post_index = std::min(curr_index_+1, desired_trajectory_.points.size()-1);
-  
-  ROS_DEBUG_STREAM_NAMED(private_name_, "Preindex: " << curr_index_ << "; postindex: " << post_index);  
- 
-  trajectory_generator::trajectory_point pre_point = desired_trajectory_.points[curr_index_];
-  trajectory_generator::trajectory_point post_point = desired_trajectory_.points[post_index];
-  
-  ros::Duration pre_time = elapsed_time - pre_point.time;
-  ros::Duration period = post_point.time - pre_point.time;
-  
-  
+  nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
+  trajectory_generator::trajectory_point pre_point, post_point;
   double pre_time_fraction = 1;
-  if(curr_index_ < desired_trajectory_.points.size()-1)
+  double t;
+  std::size_t num_points;
+  int post_index;
+  
   {
-    pre_time_fraction = pre_time.toSec()/period.toSec();
+    boost::mutex::scoped_lock lock(trajectory_mutex_);  //While computing desired state, don't change the trajectory
+    
+    num_points = desired_trajectory_.points.size();
+    odom->header.frame_id = desired_trajectory_.header.frame_id;
+  
+    ros::Duration elapsed_time = header.stamp - desired_trajectory_.header.stamp;
+    t = elapsed_time.toSec();
+  
+    //This 'should' update curr_index to refer to the last trajectory point before the desired time.
+    for(; curr_index_ < num_points -1 && desired_trajectory_.points[curr_index_+1].time < elapsed_time; curr_index_++);
+  
+   
+    //This handles the case where we've reached the end of the trajectory time
+    post_index = std::min(curr_index_+1, num_points-1);
+    
+   
+    pre_point = desired_trajectory_.points[curr_index_];
+    post_point = desired_trajectory_.points[post_index];
+    
+    ros::Duration pre_time = elapsed_time - pre_point.time;
+    ros::Duration period = post_point.time - pre_point.time;
+    
+    
+    if(curr_index_ < desired_trajectory_.points.size()-1)
+    {
+      pre_time_fraction = pre_time.toSec()/period.toSec();
+    }
+    
+    if(curr_index_ == desired_trajectory_.points.size()-1)
+    {
+        executing_ = false;
+        curr_index_ = -1;
+    }
+    
   }
 
   double x = pre_point.x*(1-pre_time_fraction) + post_point.x*pre_time_fraction;
@@ -342,11 +358,9 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header& he
   //This was in the trajectory generator class.
   geometry_msgs::Quaternion quat = tf::createQuaternionMsgFromRollPitchYaw(0, 0, theta);
 
-  nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
 
   // Header
   odom->header.stamp = header.stamp;
-  odom->header.frame_id = desired_trajectory_.header.frame_id;
 
   // Position
   odom->pose.pose.position.x = x;
@@ -359,13 +373,11 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(std_msgs::Header& he
   odom->twist.twist.linear.y = 0;
   odom->twist.twist.angular.z = w;
 
+  ROS_DEBUG_STREAM_NAMED(private_name_, "Index: " << curr_index_ << "; # points: " << num_points); 
+  ROS_DEBUG_STREAM_NAMED(private_name_, "Preindex: " << curr_index_ << "; postindex: " << post_index);  
   ROS_DEBUG_STREAM_NAMED(private_name_, "Desired@ " << t << "s: (" << x << "," << y << ") and " << quat.w <<"," << quat.z);
   
-  if(curr_index_ == desired_trajectory_.points.size()-1)
-  {
-      executing_ = false;
-      curr_index_ = -1;
-  }
+
 
   return odom;
 };
