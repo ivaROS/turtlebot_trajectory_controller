@@ -104,7 +104,16 @@ namespace kobuki
     
     enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
     disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
-    odom_subscriber_ = nh_.subscribe("/odom", 10, &TrajectoryController::OdomCB, this);
+    
+    odom_nh_.setCallbackQueue(&odom_queue_);
+    
+    /*Should the queue be 1 or 2? I really only want to act on the most recent data. However, if a queue of 1 means that a new message
+    won't be stored if it arrives while the previous is being processed, but could otherwise be processed before the next comes, then
+    2 would be better. But if 2 means that older info will be used while newer info is already waiting in the queue, then should use 1 */
+    odom_subscriber_ = odom_nh_.subscribe("/odom", 2, &TrajectoryController::OdomCB, this);
+    odom_spinner_ = std::make_shared<ros::AsyncSpinner>(0, &odom_queue_); //1 is for the number of threads
+    odom_spinner_->start();
+    
     trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 1, &TrajectoryController::TrajectoryCB, this);
 
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);

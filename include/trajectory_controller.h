@@ -60,10 +60,12 @@
 #include <tf2_trajectory.h>
 #include <tf2_ros/transform_listener.h>
 #include <memory>
+#include <ros/callback_queue.h>
 
 
 typedef std::shared_ptr<tf2_ros::Buffer> tf_buffer_ptr;
 typedef std::shared_ptr<tf2_ros::TransformListener> transform_listener_ptr;
+typedef std::shared_ptr<ros::AsyncSpinner> spinner_ptr;
 
 namespace kobuki
 {
@@ -91,6 +93,10 @@ private:
 protected:
   ros::NodeHandle nh_;
   std::string name_;
+  
+  spinner_ptr odom_spinner_;
+  ros::NodeHandle odom_nh_;
+  ros::CallbackQueue odom_queue_;
   
   tf_buffer_ptr tfBuffer_;
   transform_listener_ptr tf_listener_;
