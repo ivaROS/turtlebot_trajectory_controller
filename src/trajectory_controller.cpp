@@ -110,6 +110,8 @@ namespace kobuki
     /*Should the queue be 1 or 2? I really only want to act on the most recent data. However, if a queue of 1 means that a new message
     won't be stored if it arrives while the previous is being processed, but could otherwise be processed before the next comes, then
     2 would be better. But if 2 means that older info will be used while newer info is already waiting in the queue, then should use 1 */
+    
+    //Also, it is not a good idea to use the spinner: only one asyncspinner can run in a process, and when using nodelets that is very dangerous assumption
     odom_subscriber_ = odom_nh_.subscribe("/odom", 2, &TrajectoryController::OdomCB, this);
     odom_spinner_ = std::make_shared<ros::AsyncSpinner>(0, &odom_queue_); //1 is for the number of threads
     odom_spinner_->start();
@@ -165,7 +167,14 @@ void TrajectoryController::disableCB(const std_msgs::Empty::ConstPtr& msg)
 };
 
 
-void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points& msg)
+//This should also use ConstPtr
+/*May need to use message filter to ensure transform available;
+#include <message_filter.h>
+message_filters::Subscriber<MessageType> sub(node_handle_, "topic", 10);
+tf::MessageFilter<MessageType> tf_filter(sub, tf_listener_, "/map", 10);
+tf_filter.registerCallback(&MyClass::myCallback, this);
+*/
+void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points msg)
 {
 
   ROS_DEBUG_NAMED(private_name_, "Trajectory received.");
@@ -209,7 +218,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
 }
 
 
-void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
+void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr msg)
 {
   {
     boost::mutex::scoped_lock lock(odom_mutex_);
