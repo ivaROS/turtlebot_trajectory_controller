@@ -78,8 +78,8 @@ namespace kobuki
 class TrajectoryController : public yocs::Controller
 {
 public:
-  TrajectoryController(ros::NodeHandle& nh, std::string& name);;
-  ~TrajectoryController(){//odom_spinner_->stop();
+  TrajectoryController(ros::NodeHandle& nh, std::string& name);
+  ~TrajectoryController(){odom_spinner_->stop();
 };
 
   /**
