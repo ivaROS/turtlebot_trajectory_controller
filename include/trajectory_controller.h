@@ -79,7 +79,8 @@ class TrajectoryController : public yocs::Controller
 {
 public:
   TrajectoryController(ros::NodeHandle& nh, std::string& name);;
-  ~TrajectoryController(){};
+  ~TrajectoryController(){//odom_spinner_->stop();
+};
 
   /**
    * Set-up necessary publishers/subscribers

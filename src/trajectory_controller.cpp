@@ -74,6 +74,7 @@ namespace kobuki
  */
 
   TrajectoryController::TrajectoryController(ros::NodeHandle& nh, std::string& name) : Controller(), nh_(nh), name_(name){};
+  
 
 
   /**
@@ -112,9 +113,9 @@ namespace kobuki
     2 would be better. But if 2 means that older info will be used while newer info is already waiting in the queue, then should use 1 */
     
     //Also, it is not a good idea to use the spinner: only one asyncspinner can run in a process, and when using nodelets that is very dangerous assumption
-    odom_subscriber_ = odom_nh_.subscribe("/odom", 2, &TrajectoryController::OdomCB, this);
-    odom_spinner_ = std::make_shared<ros::AsyncSpinner>(0, &odom_queue_); //1 is for the number of threads
-    odom_spinner_->start();
+    odom_subscriber_ = nh_.subscribe("/odom", 2, &TrajectoryController::OdomCB, this);
+    //odom_spinner_ = std::make_shared<ros::AsyncSpinner>(0, &odom_queue_); //1 is for the number of threads
+    //odom_spinner_->start();
     
     trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 1, &TrajectoryController::TrajectoryCB, this);
 
