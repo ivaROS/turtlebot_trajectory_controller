@@ -113,7 +113,7 @@ namespace kobuki
     2 would be better. But if 2 means that older info will be used while newer info is already waiting in the queue, then should use 1 */
     
     //Also, it is not a good idea to use the spinner: only one asyncspinner can run in a process, and when using nodelets that is very dangerous assumption
-    odom_subscriber_ = odom_nh_.subscribe("/odom", 2, &TrajectoryController::OdomCB, this);
+    odom_subscriber_ = odom_nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
     odom_spinner_ = std::make_shared<ros::AsyncSpinner>(0, &odom_queue_); //1 is for the number of threads
     odom_spinner_->start();
     
