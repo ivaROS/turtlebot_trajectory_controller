@@ -106,16 +106,24 @@ namespace kobuki
     enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
     disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
     
-    odom_nh_.setCallbackQueue(&odom_queue_);
-    
+    //Not sure if it is good idea to use the spinner: only one asyncspinner can run in a process, and when using nodelets that is very dangerous assumption
+    if(use_odom_spinner_)
+    {
+      odom_nh_.setCallbackQueue(&odom_queue_);
+      odom_subscriber_ = odom_nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
+      odom_spinner_ = std::make_shared<ros::AsyncSpinner>(0, &odom_queue_); //1 is for the number of threads
+      odom_spinner_->start();
+    }
+    else
+    {
+      odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
+    }
     /*Should the queue be 1 or 2? I really only want to act on the most recent data. However, if a queue of 1 means that a new message
     won't be stored if it arrives while the previous is being processed, but could otherwise be processed before the next comes, then
     2 would be better. But if 2 means that older info will be used while newer info is already waiting in the queue, then should use 1 */
     
-    //Also, it is not a good idea to use the spinner: only one asyncspinner can run in a process, and when using nodelets that is very dangerous assumption
-    odom_subscriber_ = odom_nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
-    odom_spinner_ = std::make_shared<ros::AsyncSpinner>(0, &odom_queue_); //1 is for the number of threads
-    odom_spinner_->start();
+
+
     
     trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 1, &TrajectoryController::TrajectoryCB, this);
 
@@ -132,7 +140,7 @@ namespace kobuki
     nh_.param<std::string>("/mobile_base/base_frame", base_frame_id_, "base_footprint");
     nh_.param<double>("k_drive", k_drive_, 1.0);
     nh_.param<double>("k_turn", k_turn_, 1.0);
-
+    nh_.param<bool>("odom_spinner", use_odom_spinner_, false);
   }
 
   

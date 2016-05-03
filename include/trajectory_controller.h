@@ -108,6 +108,7 @@ protected:
   double k_drive_;
   ros::Time start_time_;
   std::string odom_frame_id_, base_frame_id_;
+  bool use_odom_spinner_=false;
   
   trajectory_generator::trajectory_points desired_trajectory_;
   size_t curr_index_;
