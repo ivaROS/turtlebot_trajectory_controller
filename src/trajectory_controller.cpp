@@ -73,7 +73,12 @@ namespace kobuki
  * A simple nodelet-based controller for Kobuki, which makes one of Kobuki's LEDs blink, when a bumper is pressed.
  */
 
-  TrajectoryController::TrajectoryController(ros::NodeHandle& nh, std::string& name) : Controller(), nh_(nh), name_(name){};
+  TrajectoryController::TrajectoryController(ros::NodeHandle& nh, ros::NodeHandle& pnh, std::string& name) : 
+    Controller(), 
+    nh_(nh), 
+    pnh_(pnh), 
+    name_(name)
+  { };
   
 
 
@@ -109,6 +114,7 @@ namespace kobuki
     //Not sure if it is good idea to use the spinner: only one asyncspinner can run in a process, and when using nodelets that is very dangerous assumption
     if(use_odom_spinner_)
     {
+      ROS_WARN("Using spinner");
       odom_nh_.setCallbackQueue(&odom_queue_);
       odom_subscriber_ = odom_nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
       odom_spinner_ = std::make_shared<ros::AsyncSpinner>(0, &odom_queue_); //1 is for the number of threads
@@ -138,9 +144,13 @@ namespace kobuki
     
     nh_.param<std::string>("/mobile_base/odom_frame", odom_frame_id_, "odom");
     nh_.param<std::string>("/mobile_base/base_frame", base_frame_id_, "base_footprint");
-    nh_.param<double>("k_drive", k_drive_, 1.0);
-    nh_.param<double>("k_turn", k_turn_, 1.0);
-    nh_.param<bool>("odom_spinner", use_odom_spinner_, false);
+    pnh_.param<double>("k_drive", k_drive_, 1.0);
+    pnh_.param<double>("k_turn", k_turn_, 1.0);
+    pnh_.param<bool>("odom_spinner", use_odom_spinner_, false);
+    
+    pnh_.setParam("odom_spinner", true);
+
+
   }
 
   

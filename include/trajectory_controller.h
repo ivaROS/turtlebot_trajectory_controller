@@ -78,9 +78,14 @@ namespace kobuki
 class TrajectoryController : public yocs::Controller
 {
 public:
-  TrajectoryController(ros::NodeHandle& nh, std::string& name);
-  ~TrajectoryController(){odom_spinner_->stop();
-};
+  TrajectoryController(ros::NodeHandle& nh, ros::NodeHandle& pnh, std::string& name);
+  ~TrajectoryController()
+  {
+    if(odom_spinner_)
+    {
+      odom_spinner_->stop();
+    }
+  }
 
   /**
    * Set-up necessary publishers/subscribers
@@ -92,7 +97,7 @@ private:
   std::string private_name_ = "RTController";
 
 protected:
-  ros::NodeHandle nh_;
+  ros::NodeHandle nh_,pnh_;
   std::string name_;
   
   spinner_ptr odom_spinner_;

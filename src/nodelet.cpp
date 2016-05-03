@@ -63,15 +63,16 @@ public:
    */
   virtual void onInit()
   {
-    ros::NodeHandle nh = this->getPrivateNodeHandle();
+    ros::NodeHandle nh = this->getMTNodeHandle();
+    ros::NodeHandle pnh = this->getMTPrivateNodeHandle();
 
     // resolve node(let) name
-    std::string name = nh.getUnresolvedNamespace();
+    std::string name = pnh.getUnresolvedNamespace();
     int pos = name.find_last_of('/');
     name = name.substr(pos + 1);
 
     NODELET_INFO_STREAM("Initialising nodelet... [" << name << "]");
-    controller_.reset(new TrajectoryController(nh, name));
+    controller_.reset(new TrajectoryController(nh, pnh, name));
 
     // Initialises the controller
     if (controller_->init())
