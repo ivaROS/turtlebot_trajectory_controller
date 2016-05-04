@@ -61,7 +61,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <memory>
 #include <ros/callback_queue.h>
-
+#include "rate_tracker.h"
 
 typedef std::shared_ptr<tf2_ros::Buffer> tf_buffer_ptr;
 typedef std::shared_ptr<tf2_ros::TransformListener> transform_listener_ptr;
@@ -100,6 +100,7 @@ protected:
   ros::NodeHandle nh_,pnh_;
   std::string name_;
   
+  rate_tracker odom_rate;
   spinner_ptr odom_spinner_;
   ros::NodeHandle odom_nh_;
   ros::CallbackQueue odom_queue_;
