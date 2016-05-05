@@ -149,7 +149,7 @@ protected:
    * @brief Turns on/off a LED, when a bumper is pressed/released
    * @param msg incoming topic message
    */
-  virtual void OdomCB(const nav_msgs::Odometry::ConstPtr msg);
+  virtual void OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
   
   void TrajectoryCB(const trajectory_generator::trajectory_points msg);
   

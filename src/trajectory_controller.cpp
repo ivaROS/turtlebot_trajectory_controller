@@ -237,12 +237,14 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
 }
 
 
-void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr msg)
+void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
 {
-  {
-    boost::mutex::scoped_lock lock(odom_mutex_);
-    curr_odom_ = msg;
-  }
+  curr_odom_ = msg;
+  
+  odom_rate.addTime(msg->header);
+     
+  ROS_WARN_STREAM_THROTTLE_NAMED(2, private_name_,"Odom rate: " << odom_rate.getRate() << " (" << odom_rate.getNumSamples() << " samples). Current delay: " << odom_rate.getLastDelay() << "s; Average delay: " << odom_rate.getAverageDelay() << "s.");
+  
   
   if (this->getState() && executing_) // check, if the controller is active
   {
