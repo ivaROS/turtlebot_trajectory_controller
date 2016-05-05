@@ -5,89 +5,112 @@
 #include <list>
 #include <std_msgs/Header.h>
 
+/*Todo: use pass by reference when possible. Will need to overload since rvalues can't be passed by reference*/
+
 struct rate_tracker
 {
 
 
-private:
+protected:
 size_t max_size = 50;
 
 std::list<ros::Time> times;
-std::list<ros::Duration> delays;
+size_t num_total_samples=0;
 
-size_t num_samples=0;
-
-public:
-
+inline
 ros::Time now()
 {
  return ros::Time::now();
 }
 
+public:
+
+
+void addTime(ros::Time time)
+{
+ 
+  if(num_total_samples >= max_size)
+    times.pop_front();
+  
+  num_total_samples = num_total_samples + 1;
+  times.push_back(time);
+}
+
+inline
 void addTime()
 {
   addTime(now()); 
 }
 
-void addTime(ros::Time time)
+inline
+double getNumRunningSamples()
 {
- 
-  if(times.size() == max_size)
-    times.pop_front();
-  
-  num_samples = num_samples + 1;
-  times.push_back(time);
-}
-
-void addDuration(ros::Time msgTime, ros::Time actualTime)
-{
-  if(delays.size() == max_size)
-    delays.pop_front();
-
-  ros::Duration delay = actualTime - msgTime;
-  delays.push_back(delay);
+   return (num_total_samples > max_size) ? max_size : num_total_samples;
 }
 
 void addTime(std_msgs::Header header)
 {
   addTime(header.stamp);
-  addDuration(header.stamp, now());
 }
 
 double getRate()
 {
-  if(times.size()<2)
+  if(num_total_samples < 2)
     return 0;
   
   ros::Duration dt = times.back() - times.front();
   
-  double rate = ((double)times.size())/dt.toSec();
+  
+  double rate = getNumRunningSamples()/dt.toSec();
   return rate;
-}
-
-double getLastDelay()
-{
-  if(delays.size() == 0)
-    return 0;
-  else
-    return delays.back().toSec();
-}
-
-double getAverageDelay()
-{
-  ros::Duration total_delay = ros::Duration(0);
-  for (std::list<ros::Duration>::iterator it = delays.begin() ; it != delays.end(); ++it)
-  {
-    total_delay+=*it;
-  }
-  return total_delay.toSec()/((double)delays.size());
 }
 
 size_t getNumSamples()
 {
-  return num_samples;
+  return num_total_samples;
 }
 
+};
+
+struct delay_tracker : rate_tracker
+{
+  private:
+  std::list<ros::Duration> delays;
+
+  public:
+  double getLastDelay()
+  {
+    if(num_total_samples == 0)
+      return 0;
+    else
+      return delays.back().toSec();
+  }
+
+  double getAverageDelay()
+  {
+    ros::Duration total_delay = ros::Duration(0);
+    for (std::list<ros::Duration>::iterator it = delays.begin() ; it != delays.end(); ++it)
+    {
+      total_delay+=*it;
+    }
+  
+    return total_delay.toSec()/getNumRunningSamples();
+  }
+  
+  void addTime(const std_msgs::Header header)
+  {
+    rate_tracker::addTime(header);
+    addDuration(header.stamp, now());
+  }
+  
+  void addDuration(ros::Time msgTime, ros::Time actualTime)
+  {
+    if(num_total_samples >= max_size)
+      delays.pop_front();
+
+    ros::Duration delay = actualTime - msgTime;
+    delays.push_back(delay);
+  }
 };
 
 #endif /* RATE_TRACKER_H_ */

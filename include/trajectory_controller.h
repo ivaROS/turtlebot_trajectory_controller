@@ -100,7 +100,7 @@ protected:
   ros::NodeHandle nh_,pnh_;
   std::string name_;
   
-  rate_tracker odom_rate;
+  delay_tracker odom_rate;
   spinner_ptr odom_spinner_;
   ros::NodeHandle odom_nh_;
   ros::CallbackQueue odom_queue_;

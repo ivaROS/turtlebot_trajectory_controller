@@ -12,11 +12,11 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         tf2_ros
                                         tf2
                                         )
-##Note: on indigo, must be 'Eigen3' here and under 'include_directories'. Hydro, just 'Eigen'
+
 find_package(Eigen REQUIRED)
 
 catkin_package(INCLUDE_DIRS include
-               LIBRARIES trajectory_controller trajectory_controller_nodelet 
+               LIBRARIES trajectory_controller
                CATKIN_DEPENDS roscpp
                               nodelet
                               pluginlib
@@ -38,23 +38,27 @@ include_directories(
 )
 
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native -std=c++11")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
 
-add_library(trajectory_controller src/trajectory_controller.cpp)
-add_dependencies(trajectory_controller kobuki_msgs_gencpp)
-target_link_libraries(trajectory_controller ${catkin_LIBRARIES})
+add_library(trajectory_controller 
+   src/trajectory_controller.cpp)
+add_dependencies(trajectory_controller 
+   kobuki_msgs_gencpp)
+target_link_libraries(trajectory_controller 
+   ${catkin_LIBRARIES})
 
-add_library(trajectory_controller_nodelet src/nodelet.cpp)
-add_dependencies(trajectory_controller_nodelet trajectory_controller)
-target_link_libraries(trajectory_controller_nodelet trajectory_controller ${catkin_LIBRARIES})
+add_library(trajectory_controller_nodelet MODULE
+   src/nodelet.cpp )
+add_dependencies(trajectory_controller_nodelet
+   trajectory_controller)
+target_link_libraries(trajectory_controller_nodelet
+   trajectory_controller ${catkin_LIBRARIES})
 
-add_library(hard_coded_trajectory_controller_nodelet src/hard_coded_nodelet.cpp)
-add_dependencies(hard_coded_trajectory_controller_nodelet kobuki_msgs_gencpp)
-target_link_libraries(hard_coded_trajectory_controller_nodelet ${catkin_LIBRARIES})
-
-add_executable(trajectory_sender src/send_test_trajectory.cpp)
-target_link_libraries(trajectory_sender ${catkin_LIBRARIES})
+add_executable(trajectory_sender
+   src/send_test_trajectory.cpp)
+target_link_libraries(trajectory_sender
+   ${catkin_LIBRARIES})
 
 ##install(TARGETS bump_blink_controller_nodelet
 ##        DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
