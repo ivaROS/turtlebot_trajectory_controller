@@ -135,6 +135,7 @@ namespace kobuki
     tf_filter_.reset(new tf_filter(trajectory_subscriber_, *tfBuffer_, odom_frame_id_, trajectory_queue_size_, nh_));
     trajectory_subscriber_.subscribe(nh_, "desired_trajectory", trajectory_queue_size_);
     tf_filter_->registerCallback(boost::bind(&TrajectoryController::TrajectoryCB, this, _1));
+    tf_filter_->setTolerance(ros::Duration(0.01));
 
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
     trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("/desired_odom", 10);
@@ -166,7 +167,7 @@ void TrajectoryController::enableCB(const std_msgs::Empty::ConstPtr& msg)
   }
   else
   {
-    ROS_INFO_NAMED(private_name_, "Controller was already enabled.");
+    ROS_DEBUG_NAMED(private_name_, "Controller was already enabled.");
   }
 };
 
@@ -207,7 +208,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
       {
         boost::mutex::scoped_lock lock(trajectory_mutex_);
       
-        desired_trajectory_ = tfBuffer_->transform(*msg, odom_frame_id_/*, ros::Time(0), "base_footprint"*/);  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
+        desired_trajectory_ = tfBuffer_->transform(*msg, odom_frame_id_, ros::Time(0), "base_footprint");  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
         curr_index_ = 0;
         executing_ = true;
       }
