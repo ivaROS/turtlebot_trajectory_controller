@@ -48,6 +48,10 @@
 ** Includes
 *****************************************************************************/
 // %Tag(FULLTEXT)%
+#include <trajectory_generator_ros_interface.h>
+#include "rate_tracker.h"
+#include <tf2_trajectory.h>
+
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
 #include <yocs_controllers/default_controller.hpp>
@@ -55,17 +59,21 @@
 #include <geometry_msgs/Twist.h>
 
 #include <nav_msgs/Odometry.h>
-#include <trajectory_generator_ros_interface.h>
-#include <tf/transform_datatypes.h>
-#include <tf2_trajectory.h>
-#include <tf2_ros/transform_listener.h>
-#include <memory>
+
 #include <ros/callback_queue.h>
-#include "rate_tracker.h"
+
+#include <tf/transform_datatypes.h>
+#include <tf2_ros/transform_listener.h>
+
+#include <tf2_ros/message_filter.h>
+#include <message_filters/subscriber.h>
+
+#include <memory>
 
 typedef std::shared_ptr<tf2_ros::Buffer> tf_buffer_ptr;
 typedef std::shared_ptr<tf2_ros::TransformListener> transform_listener_ptr;
 typedef std::shared_ptr<ros::AsyncSpinner> spinner_ptr;
+typedef tf2_ros::MessageFilter<trajectory_generator::trajectory_points> tf_filter;
 
 namespace kobuki
 {
@@ -108,12 +116,13 @@ protected:
   tf_buffer_ptr tfBuffer_;
   transform_listener_ptr tf_listener_;
   
-  ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_, trajectory_subscriber_;
+  ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_;
   ros::Publisher command_publisher_, trajectory_odom_publisher_, transformed_trajectory_publisher_;
   double k_turn_;
   double k_drive_;
   ros::Time start_time_;
   std::string odom_frame_id_, base_frame_id_;
+  int trajectory_queue_size_ = 1;
   bool use_odom_spinner_=false;
   
   trajectory_generator::trajectory_points desired_trajectory_;
@@ -124,8 +133,8 @@ protected:
   boost::mutex trajectory_mutex_;
   boost::mutex odom_mutex_;
   
-  //message_filters::Subscriber<trajectory_generator::trajectory_points> trajectory_subscriber_;
-  //tf::MessageFilter<trajectory_generator::trajectory_points> * tf_filter_;
+  message_filters::Subscriber<trajectory_generator::trajectory_points> trajectory_subscriber_;
+  std::shared_ptr<tf_filter> tf_filter_;
   
   virtual void setupPublishersSubscribers();
   
@@ -151,7 +160,7 @@ protected:
    */
   virtual void OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
   
-  void TrajectoryCB(const trajectory_generator::trajectory_points msg);
+  void TrajectoryCB(const trajectory_generator::trajectory_points::ConstPtr& msg);
   
 
   nav_msgs::OdometryPtr getDesiredState(const std_msgs::Header& header);

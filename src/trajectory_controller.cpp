@@ -44,6 +44,8 @@
 // %Tag(FULLTEXT)%
 #include "trajectory_controller.h"
 
+#include <tf2_trajectory.h>
+
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
 #include <yocs_controllers/default_controller.hpp>
@@ -57,7 +59,8 @@
 #include <tf/transform_datatypes.h>
 
 #include <tf2_ros/transform_listener.h>
-#include <tf2_trajectory.h>
+#include <tf2_ros/message_filter.h>
+#include <message_filters/subscriber.h>
 
 #include <memory>
 
@@ -91,6 +94,7 @@ namespace kobuki
     //Need to delete these on shutdown; or use use shared pointers
     tfBuffer_ = std::make_shared<tf2_ros::Buffer>(); //optional parameter: ros::Duration(cache time) (default=10)
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
+
     
     setupParams();
     setupPublishersSubscribers();
@@ -128,10 +132,9 @@ namespace kobuki
     won't be stored if it arrives while the previous is being processed, but could otherwise be processed before the next comes, then
     2 would be better. But if 2 means that older info will be used while newer info is already waiting in the queue, then should use 1 */
     
-
-
-    
-    trajectory_subscriber_ = nh_.subscribe("/desired_trajectory", 1, &TrajectoryController::TrajectoryCB, this);
+    tf_filter_.reset(new tf_filter(trajectory_subscriber_, *tfBuffer_, odom_frame_id_, trajectory_queue_size_, nh_));
+    trajectory_subscriber_.subscribe(nh_, "desired_trajectory", trajectory_queue_size_);
+    tf_filter_->registerCallback(boost::bind(&TrajectoryController::TrajectoryCB, this, _1));
 
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
     trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("/desired_odom", 10);
@@ -186,14 +189,7 @@ void TrajectoryController::disableCB(const std_msgs::Empty::ConstPtr& msg)
 };
 
 
-//This should also use ConstPtr
-/*May need to use message filter to ensure transform available;
-#include <message_filter.h>
-message_filters::Subscriber<MessageType> sub(node_handle_, "topic", 10);
-tf::MessageFilter<MessageType> tf_filter(sub, tf_listener_, "/map", 10);
-tf_filter.registerCallback(&MyClass::myCallback, this);
-*/
-void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points msg)
+void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points::ConstPtr& msg)
 {
 
   ROS_DEBUG_NAMED(private_name_, "Trajectory received.");
@@ -211,12 +207,12 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
       {
         boost::mutex::scoped_lock lock(trajectory_mutex_);
       
-        desired_trajectory_ = tfBuffer_->transform(msg, odom_frame_id_);  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
+        desired_trajectory_ = tfBuffer_->transform(*msg, odom_frame_id_/*, ros::Time(0), "base_footprint"*/);  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
         curr_index_ = 0;
         executing_ = true;
       }
       
-      ROS_DEBUG_STREAM_NAMED(private_name_, "Successfully transformed trajectory from '" << msg.header.frame_id << "' to '" << odom_frame_id_);
+      ROS_DEBUG_STREAM_NAMED(private_name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
     }
     catch (tf2::TransformException &ex) {
         ROS_WARN_NAMED(private_name_, "Unable to execute trajectory: %s",ex.what());
