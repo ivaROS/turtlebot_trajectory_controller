@@ -303,24 +303,24 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
     geometry_msgs::Quaternion orientation = current->pose.pose.orientation;
 
     Eigen::Matrix2cd g_curr = TrajectoryController::getComplexMatrix(position.x, position.y, orientation.w, orientation.z);
-    ROS_DEBUG_NAMED(name_, "[%s] Current:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", name_.c_str(), g_curr.real()(0,0), g_curr.imag()(0,0), g_curr.real()(0,1), g_curr.imag()(0,1), g_curr.real()(1,0), g_curr.imag()(1,0), g_curr.real()(1,1), g_curr.imag()(1,1));
+    ROS_DEBUG_NAMED(private_name_, "[%s] Current:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", private_name_.c_str(), g_curr.real()(0,0), g_curr.imag()(0,0), g_curr.real()(0,1), g_curr.imag()(0,1), g_curr.real()(1,0), g_curr.imag()(1,0), g_curr.real()(1,1), g_curr.imag()(1,1));
 
     position = desired->pose.pose.position;
     orientation = desired->pose.pose.orientation;
 
     Eigen::Matrix2cd g_des = TrajectoryController::getComplexMatrix(position.x, position.y, orientation.w, orientation.z);
-    ROS_DEBUG_NAMED(name_, "[%s] Desired:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", name_.c_str(), g_des.real()(0,0), g_des.imag()(0,0), g_des.real()(0,1), g_des.imag()(0,1), g_des.real()(1,0), g_des.imag()(1,0), g_des.real()(1,1), g_des.imag()(1,1));
+    ROS_DEBUG_NAMED(private_name_, "[%s] Desired:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", private_name_.c_str(), g_des.real()(0,0), g_des.imag()(0,0), g_des.real()(0,1), g_des.imag()(0,1), g_des.real()(1,0), g_des.imag()(1,0), g_des.real()(1,1), g_des.imag()(1,1));
 
     Eigen::Matrix2cd g_error = g_curr.inverse() * g_des;
 
-    ROS_DEBUG_NAMED(name_, "[%s] Error:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", name_.c_str(), g_error.real()(0,0), g_error.imag()(0,0), g_error.real()(0,1), g_error.imag()(0,1), g_error.real()(1,0), g_error.imag()(1,0), g_error.real()(1,1), g_error.imag()(1,1));
+    ROS_DEBUG_NAMED(private_name_, "[%s] Error:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", private_name_.c_str(), g_error.real()(0,0), g_error.imag()(0,0), g_error.real()(0,1), g_error.imag()(0,1), g_error.real()(1,0), g_error.imag()(1,0), g_error.real()(1,1), g_error.imag()(1,1));
 
     
     double theta_error = std::arg(g_error(0,0));
     double x_error = g_error.real()(0,1);
     double y_error = g_error.imag()(0,1);
     
-    double v_ang_fb = theta_error * k_turn_ + y_error*k_drive_y_;
+    double v_ang_fb = theta_error * k_turn_;// + y_error*k_drive_y_;
     double v_lin_fb = x_error * k_drive_x_;
 
     double v_ang_ff = desired->twist.twist.angular.z;
