@@ -43,8 +43,8 @@
 *****************************************************************************/
 // %Tag(FULLTEXT)%
 #include "trajectory_controller.h"
-
 #include <tf2_trajectory.h>
+#include <turtlebot_trajectory_controller/TurtlebotControllerConfig.h>
 
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
@@ -91,10 +91,13 @@ namespace kobuki
    */
   bool TrajectoryController::init()
   {
-    //Need to delete these on shutdown; or use use shared pointers
-    tfBuffer_ = std::make_shared<tf2_ros::Buffer>(); //optional parameter: ros::Duration(cache time) (default=10)
+    tfBuffer_ = std::make_shared<tf2_ros::Buffer>(); //optional parameter: ros::Duration(cache time) (default=10) (though it doesn't seem to accept it!)
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
-
+    
+    ros::NodeHandle RT_pnh_(pnh_, private_name_);
+    
+    reconfigure_server_.reset( new ReconfigureServer(RT_pnh_));
+    reconfigure_server_->setCallback(boost::bind(&TrajectoryController::configCB, this, _1, _2));
     
     setupParams();
     setupPublishersSubscribers();
@@ -142,22 +145,32 @@ namespace kobuki
     transformed_trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("/transformed_trajectory", 10);
   }
   
+  void TrajectoryController::configCB(turtlebot_trajectory_controller::TurtlebotControllerConfig &config, uint32_t level) {
+    ROS_INFO_STREAM_NAMED(private_name_, "Reconfigure Request:\n\tk_turn =\t" << config.k_turn << "\n\tk_drive_x =\t"<< config.k_drive_x <<"\n\tk_drive_y =\t" << config.k_drive_y);
+    k_turn_ = config.k_turn;
+    k_drive_x_ = config.k_drive_x;
+    k_drive_y_ = config.k_drive_y;
+    
+  }
+  
   void TrajectoryController::setupParams()
   {
     ROS_DEBUG_NAMED(private_name_, "Setup parameters");
-    
+   /* 
+    pnh_.param<std::string>("odom_param_name", k_drive_, 1.0);
+    pnh_.param<std::string>("k_turn", k_turn_, 1.0);
+    */
     nh_.param<std::string>("/mobile_base/odom_frame", odom_frame_id_, "odom");
     nh_.param<std::string>("/mobile_base/base_frame", base_frame_id_, "base_footprint");
-    pnh_.param<double>("k_drive", k_drive_, 1.0);
-    pnh_.param<double>("k_turn", k_turn_, 1.0);
+
     pnh_.param<bool>("odom_spinner", use_odom_spinner_, false);
     
     pnh_.setParam("odom_spinner", true);
 
 
   }
-
   
+ 
 void TrajectoryController::enableCB(const std_msgs::Empty::ConstPtr& msg)
 {
   if (this->enable())
@@ -213,10 +226,10 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
         executing_ = true;
       }
       
-      ROS_DEBUG_STREAM_NAMED(private_name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
+      ROS_DEBUG_STREAM_THROTTLE_NAMED(5, private_name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
     }
     catch (tf2::TransformException &ex) {
-        ROS_WARN_NAMED(private_name_, "Unable to execute trajectory: %s",ex.what());
+        ROS_WARN_THROTTLE_NAMED(5, private_name_, "Unable to execute trajectory: %s",ex.what());
         return;
     }
       
@@ -305,9 +318,10 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
     
     double theta_error = std::arg(g_error(0,0));
     double x_error = g_error.real()(0,1);
+    double y_error = g_error.imag()(0,1);
     
-    double v_ang_fb = theta_error * k_turn_;
-    double v_lin_fb = x_error * k_drive_;
+    double v_ang_fb = theta_error * k_turn_ + y_error*k_drive_y_;
+    double v_lin_fb = x_error * k_drive_x_;
 
     double v_ang_ff = desired->twist.twist.angular.z;
     double v_lin_ff = desired->twist.twist.linear.x;

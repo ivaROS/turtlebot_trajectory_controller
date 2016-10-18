@@ -51,13 +51,14 @@
 #include <trajectory_generator_ros_interface.h>
 #include "rate_tracker.h"
 #include <tf2_trajectory.h>
+#include <turtlebot_trajectory_controller/TurtlebotControllerConfig.h>
 
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
 #include <yocs_controllers/default_controller.hpp>
 #include <Eigen/Dense>
 #include <geometry_msgs/Twist.h>
-
+#include <dynamic_reconfigure/server.h>
 #include <nav_msgs/Odometry.h>
 
 #include <ros/callback_queue.h>
@@ -103,6 +104,12 @@ public:
 
 private:
   std::string private_name_ = "RTController";
+  void configCB(turtlebot_trajectory_controller::TurtlebotControllerConfig &config, uint32_t level);
+  void setupPublishersSubscribers();
+  void setupParams();
+  
+  typedef dynamic_reconfigure::Server<turtlebot_trajectory_controller::TurtlebotControllerConfig> ReconfigureServer;
+  boost::shared_ptr<ReconfigureServer> reconfigure_server_;
 
 protected:
   ros::NodeHandle nh_,pnh_;
@@ -118,8 +125,7 @@ protected:
   
   ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_;
   ros::Publisher command_publisher_, trajectory_odom_publisher_, transformed_trajectory_publisher_;
-  double k_turn_;
-  double k_drive_;
+  double k_turn_, k_drive_x_, k_drive_y_;
   ros::Time start_time_;
   std::string odom_frame_id_, base_frame_id_;
   int trajectory_queue_size_ = 1;
@@ -135,11 +141,6 @@ protected:
   
   message_filters::Subscriber<trajectory_generator::trajectory_points> trajectory_subscriber_;
   std::shared_ptr<tf_filter> tf_filter_;
-  
-  virtual void setupPublishersSubscribers();
-  
-  virtual void setupParams();
-
   
 
   /**

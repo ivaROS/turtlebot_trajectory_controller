@@ -1,10 +1,15 @@
-<!--
-  Blink Bump App: Launches the blink_bump_controller
-  
-  Requires kobuki_node/minimal,launch or turtlebot_bringup/minimal.launch to be launched before.
- -->
 <launch>
-  <node pkg="nodelet" type="nodelet" name="trajectory_controller" args="load turtlebot_trajectory_controller/TrajectoryControllerNodelet mobile_base_nodelet_manager" output="screen">
+
+<arg name="nodelet" default="true"/>
+
+<node name="turtlebot_controller_nodelet" pkg="nodelet" type="nodelet" args="load turtlebot_trajectory_controller/trajectory_controller_nodelet mobile_base_nodelet_manager" output="screen" if="$(arg nodelet)" >
     <remap from="/trajectory_controller/odom" to="/odom"/>
-  </node>
+</node>
+
+<node name="turtlebot_controller_node" pkg="turtlebot_trajectory_controller" type="trajectory_controller_node" output="screen" args="" unless="$(arg nodelet)" >
+    <remap from="/trajectory_controller/odom" to="/odom"/>
+</node>
+
+
+  
 </launch>

@@ -11,9 +11,14 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         trajectory_generator
                                         tf2_ros
                                         tf2
+                                        dynamic_reconfigure
                                         )
 
 find_package(Eigen REQUIRED)
+
+generate_dynamic_reconfigure_options(
+  cfg/TurtlebotController.cfg
+  )
 
 catkin_package(INCLUDE_DIRS include
                LIBRARIES trajectory_controller
@@ -44,9 +49,19 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
 add_library(trajectory_controller 
    src/trajectory_controller.cpp)
 add_dependencies(trajectory_controller 
-   kobuki_msgs_gencpp)
+   kobuki_msgs_gencpp
+   ${PROJECT_NAME}_gencfg
+   )
+   
 target_link_libraries(trajectory_controller 
    ${catkin_LIBRARIES})
+
+add_executable(trajectory_controller_node
+   src/turtlebot_controller_node.cpp )
+add_dependencies(trajectory_controller_node
+   trajectory_controller)
+target_link_libraries(trajectory_controller_node
+   trajectory_controller ${catkin_LIBRARIES})
 
 add_library(trajectory_controller_nodelet MODULE
    src/nodelet.cpp )
