@@ -165,7 +165,7 @@ namespace kobuki
 
     pnh_.param<bool>("odom_spinner", use_odom_spinner_, false);
     
-    pnh_.setParam("odom_spinner", true);
+    pnh_.setParam("odom_spinner", use_odom_spinner_);
 
 
   }
@@ -320,7 +320,7 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
     double x_error = g_error.real()(0,1);
     double y_error = g_error.imag()(0,1);
     
-    double v_ang_fb = theta_error * k_turn_;// + y_error*k_drive_y_;
+    double v_ang_fb = theta_error * k_turn_ + y_error*k_drive_y_;
     double v_lin_fb = x_error * k_drive_x_;
 
     double v_ang_ff = desired->twist.twist.angular.z;
