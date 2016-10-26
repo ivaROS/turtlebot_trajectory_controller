@@ -56,7 +56,23 @@ namespace kobuki
  * A simple program that sends a trajectory to the controller when a button is pressed.
  */
  
- 
+ //Generates a straight line trajectory with a given angle and speed
+class angled_straight_traj_func : public traj_func{
+
+    double dep_angle_;
+    double v_;
+
+public:
+    angled_straight_traj_func( double dep_angle, double v ) : dep_angle_(dep_angle), v_(v) { }
+    
+    void dState ( const state_type &x , state_type &dxdt , const double  t  )
+    {
+        dxdt[near_identity::XD_IND] = v_*cos( dep_angle_);
+        dxdt[near_identity::YD_IND] = v_*sin( dep_angle_);
+    }
+    
+    
+};
 
 /* The rhs of x' = f(x) defined as a class */
 class circle_traj_func : public traj_func{
@@ -133,8 +149,8 @@ private:
    */
   void OdomCB(const nav_msgs::OdometryPtr& msg);
 
-  trajectory_generator::trajectory_points generate_trajectory(const nav_msgs::OdometryPtr& msg);
-  
+  trajectory_generator::trajectory_points generate_circle_trajectory(const nav_msgs::OdometryPtr& msg);
+  trajectory_generator::trajectory_points generate_straight_trajectory(const nav_msgs::OdometryPtr& msg);
 
 };
 
@@ -145,7 +161,19 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr& msg)
     ROS_INFO_STREAM("Button pressed: sending trajectory");
 
     nav_msgs::OdometryPtr odom = nav_msgs::OdometryPtr(curOdom_);
-    trajectory_generator::trajectory_points trajectory = TrajectoryTester::generate_trajectory(odom);
+    trajectory_generator::trajectory_points trajectory = TrajectoryTester::generate_circle_trajectory(odom);
+    
+    
+    
+    trajectory_publisher_.publish(trajectory);
+  }
+  else
+  if (msg->button == kobuki_msgs::ButtonEvent::Button1 && msg->state == kobuki_msgs::ButtonEvent::RELEASED )
+  {
+    ROS_INFO_STREAM("Button pressed: sending trajectory");
+
+    nav_msgs::OdometryPtr odom = nav_msgs::OdometryPtr(curOdom_);
+    trajectory_generator::trajectory_points trajectory = TrajectoryTester::generate_circle_trajectory(odom);
     
     
     
@@ -158,9 +186,63 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr& msg)
 };
 
 
+trajectory_generator::trajectory_points TrajectoryTester::generate_straight_trajectory(const nav_msgs::OdometryPtr& odom_msg)
+{
+    std::string offset_key, fw_vel_key, dep_angle_key;
+    double fw_vel = .05;
+    double offset = .5;
+    double dep_angle = 0;
 
+    if(ros::param::search("offset", offset_key))
+    {
+        ros::param::get(offset_key, offset); 
+    }
+    
+    if(ros::param::search("fw_vel", fw_vel_key))
+    {
+        ros::param::get(fw_vel_key, fw_vel); 
+    }
+    
+    if(ros::param::search("dep_angle", dep_angle_key))
+    {
+        ros::param::get(dep_angle_key, dep_angle); 
+    }
+    
 
-trajectory_generator::trajectory_points TrajectoryTester::generate_trajectory(const nav_msgs::OdometryPtr& odom_msg)
+    ni_trajectory_ptr traj = std::make_shared<ni_trajectory>();
+    traj->header.frame_id = base_frame_id_;
+    traj->header.stamp = odom_msg->header.stamp;
+    
+    traj->trajpntr = std::make_shared<angled_straight_traj_func>(dep_angle, fw_vel);
+    traj->x0_ = traj_gen_bridge.initState();
+    traj->x0_[near_identity::Y_IND] = offset;
+    traj->params = std::make_shared<traj_params>(traj_gen_bridge.getDefaultParams());
+      
+      
+    std::string key;
+    double tf;
+    
+    if(ros::param::search("tf", key))
+    {
+        ros::param::get(key, tf); 
+        traj->params->tf = tf;
+    }
+      
+    traj_gen_bridge.generate_trajectory(traj);
+    
+
+    
+    std::vector<ni_trajectory_ptr> trajectories;
+    trajectories.push_back(traj);
+    
+    traj_gen_bridge.publishPaths(path_publisher_, trajectories, 1);
+
+    trajectory_generator::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
+    
+    return trajectory_msg;
+}
+
+trajectory_generator::trajectory_points TrajectoryTester::generate_circle_trajectory(const nav_msgs::OdometryPtr& odom_msg)
 {
     std::string r_key, fw_vel_key;
     double fw_vel = .05;
