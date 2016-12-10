@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(turtlebot_trajectory_controller)
+
+LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
+
+set(trajectory_generator_DIR ../trajectory_generator/build/devel/share/trajectory_generator/cmake)
+
 find_package(catkin REQUIRED COMPONENTS roscpp
                                         nodelet
                                         pluginlib
