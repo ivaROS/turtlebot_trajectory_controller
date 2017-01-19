@@ -189,18 +189,25 @@ void TrajectoryController::disableCB(const std_msgs::Empty::ConstPtr& msg)
   if (this->disable())
   {
     ROS_INFO_NAMED(private_name_, "Controller has been disabled.");
-    if(executing_)
-    {
-      executing_ = false;
-      curr_index_ = -1;
-      ROS_WARN_NAMED(private_name_, "Interrupted trajectory.");
-    }
+    stop();
   }
   else
   {
     ROS_DEBUG_NAMED(private_name_, "Controller was already disabled.");
   }
 };
+
+void TrajectoryController::stop()
+{
+  if(executing_)
+  {
+    executing_ = false;
+    curr_index_ = -1;
+    ROS_WARN_NAMED(private_name_, "Interrupted trajectory.");
+  }
+  geometry_msgs::Twist::ConstPtr command(new geometry_msgs::Twist);
+  command_publisher_.publish(command);
+}
 
 
 void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points::ConstPtr& msg)

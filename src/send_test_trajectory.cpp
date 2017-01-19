@@ -235,7 +235,7 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_straight_traj
     std::vector<ni_trajectory_ptr> trajectories;
     trajectories.push_back(traj);
     
-    traj_gen_bridge.publishPaths(path_publisher_, trajectories, 1);
+    traj_gen_bridge.publishPaths(path_publisher_, trajectories);
 
     trajectory_generator::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
     
@@ -287,7 +287,7 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_circle_trajec
     std::vector<ni_trajectory_ptr> trajectories;
     trajectories.push_back(traj);
     
-    traj_gen_bridge.publishPaths(path_publisher_, trajectories, 1);
+    traj_gen_bridge.publishPaths(path_publisher_, trajectories);
 
 
     trajectory_generator::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();

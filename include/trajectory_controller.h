@@ -154,6 +154,8 @@ protected:
    * @param msg incoming topic message
    */
   void disableCB(const std_msgs::Empty::ConstPtr& msg);
+  
+  void stop();
 
   /**
    * @brief Turns on/off a LED, when a bumper is pressed/released
