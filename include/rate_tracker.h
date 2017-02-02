@@ -61,7 +61,7 @@ double getRate()
   
   ros::Duration dt = times.back() - times.front();
   
-  double rate = ((double)times.size())/dt.toSec();
+  double rate = ((double)times.size()-1)/dt.toSec();
   return rate;
 }
 
@@ -85,7 +85,7 @@ double getAverageDelay()
 
 size_t getNumSamples()
 {
-  return num_samples;
+  return delays.size();
 }
 
 };
