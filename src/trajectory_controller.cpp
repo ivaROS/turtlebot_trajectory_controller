@@ -228,7 +228,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
       {
         boost::mutex::scoped_lock lock(trajectory_mutex_);
       
-        desired_trajectory_ = tfBuffer_->transform(*msg, odom_frame_id_, ros::Time(0), "base_footprint");  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
+        desired_trajectory_ = tfBuffer_->transform(*msg, odom_frame_id_);  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
         curr_index_ = 0;
         executing_ = true;
       }
