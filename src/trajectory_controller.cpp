@@ -216,7 +216,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
   ROS_DEBUG_NAMED(private_name_, "Trajectory received.");
   if (this->getState())
   {
-    if(executing_)
+    if(executing_)  //TODO: maybe change this to be a conditional log statement
     {
       ROS_DEBUG_NAMED(private_name_, "Preempting previous trajectory");
     }
@@ -224,7 +224,7 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
 
     try
     {
-      //Lock trajectory mutex while updating trajectory
+      //Lock trajectory mutex while updating trajectory. Ensures that the desired state is computed using only 1 trajectory.
       {
         boost::mutex::scoped_lock lock(trajectory_mutex_);
       
@@ -259,7 +259,8 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
   curr_odom_ = msg;
   
   odom_rate.addTime(msg->header);
-     
+  
+  // TODO: move the rate logging into the rate tracker, allowing the messages to be enabled separately
   ROS_WARN_STREAM_THROTTLE_NAMED(2, private_name_,"Odom rate: " << odom_rate.getRate() << " (" << odom_rate.getNumSamples() << " samples). Current delay: " << odom_rate.getLastDelay() << "s; Average delay: " << odom_rate.getAverageDelay() << "s.");
   
   
