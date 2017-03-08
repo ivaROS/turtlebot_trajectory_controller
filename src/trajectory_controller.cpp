@@ -96,7 +96,7 @@ namespace kobuki
     
     ros::NodeHandle RT_pnh_(pnh_, private_name_);
     
-    reconfigure_server_.reset( new ReconfigureServer(RT_pnh_));
+    reconfigure_server_.reset( new ReconfigureServer(RT_pnh_)); //TODO: switch this to std::shared_ptr and use make_shared
     reconfigure_server_->setCallback(boost::bind(&TrajectoryController::configCB, this, _1, _2));
     
     setupParams();

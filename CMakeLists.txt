@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(turtlebot_trajectory_controller)
 
-LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
+#LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-set(trajectory_generator_DIR ../trajectory_generator/build/devel/share/trajectory_generator/cmake)
+#set(trajectory_generator_DIR ../trajectory_generator/build/devel/share/trajectory_generator/cmake)
 
 find_package(catkin REQUIRED COMPONENTS roscpp
                                         nodelet
@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         dynamic_reconfigure
                                         )
 
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 generate_dynamic_reconfigure_options(
   cfg/TurtlebotController.cfg
