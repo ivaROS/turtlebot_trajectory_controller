@@ -87,7 +87,7 @@ namespace kobuki
 class TrajectoryController : public yocs::Controller
 {
 public:
-  TrajectoryController(ros::NodeHandle& nh, ros::NodeHandle& pnh, std::string& name);
+  TrajectoryController(ros::NodeHandle& nh, ros::NodeHandle& pnh);
   ~TrajectoryController()
   {
     if(odom_spinner_)
@@ -102,18 +102,20 @@ public:
    */
   virtual bool init();
 
+protected:
+  ros::NodeHandle nh_;
+
 private:
-  std::string private_name_ = "RTController";
+  std::string name_ = "RTController";
+  ros::NodeHandle pnh_;
   void configCB(turtlebot_trajectory_controller::TurtlebotControllerConfig &config, uint32_t level);
   void setupPublishersSubscribers();
   void setupParams();
   
   typedef dynamic_reconfigure::Server<turtlebot_trajectory_controller::TurtlebotControllerConfig> ReconfigureServer;
-  boost::shared_ptr<ReconfigureServer> reconfigure_server_;
+  std::shared_ptr<ReconfigureServer> reconfigure_server_;
 
 protected:
-  ros::NodeHandle nh_,pnh_;
-  std::string name_;
   
   rate_tracker odom_rate;
   spinner_ptr odom_spinner_;

@@ -10,7 +10,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
     
-    kobuki::TrajectoryController controller(nh, pnh, name);
+    kobuki::TrajectoryController controller(nh, pnh);
     controller.init();
 
 

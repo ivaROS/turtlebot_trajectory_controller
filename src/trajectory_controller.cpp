@@ -76,11 +76,10 @@ namespace kobuki
  * A simple nodelet-based controller for Kobuki, which makes one of Kobuki's LEDs blink, when a bumper is pressed.
  */
 
-  TrajectoryController::TrajectoryController(ros::NodeHandle& nh, ros::NodeHandle& pnh, std::string& name) : 
+  TrajectoryController::TrajectoryController(ros::NodeHandle& nh, ros::NodeHandle& pnh) : 
     Controller(), 
     nh_(nh), 
-    pnh_(pnh), 
-    name_(name)
+    pnh_(pnh, name_)
   { };
   
 
@@ -94,9 +93,7 @@ namespace kobuki
     tfBuffer_ = std::make_shared<tf2_ros::Buffer>(); //optional parameter: ros::Duration(cache time) (default=10) (though it doesn't seem to accept it!)
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
     
-    ros::NodeHandle RT_pnh_(pnh_, private_name_);
-    
-    reconfigure_server_.reset( new ReconfigureServer(RT_pnh_)); //TODO: switch this to std::shared_ptr and use make_shared
+    reconfigure_server_ = std::make_shared<ReconfigureServer>(pnh_);
     reconfigure_server_->setCallback(boost::bind(&TrajectoryController::configCB, this, _1, _2));
     
     setupParams();
@@ -113,7 +110,7 @@ namespace kobuki
   
   void TrajectoryController::setupPublishersSubscribers()
   {
-    ROS_DEBUG_NAMED(private_name_, "Setup publishers and subscribers");
+    ROS_DEBUG_NAMED(name_, "Setup publishers and subscribers");
     
     enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
     disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
@@ -123,13 +120,13 @@ namespace kobuki
     {
       ROS_WARN("Using spinner");
       odom_nh_.setCallbackQueue(&odom_queue_);
-      odom_subscriber_ = odom_nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
+      odom_subscriber_ = odom_nh_.subscribe("odom", 1, &TrajectoryController::OdomCB, this);
       odom_spinner_ = std::make_shared<ros::AsyncSpinner>(0, &odom_queue_); //1 is for the number of threads
       odom_spinner_->start();
     }
     else
     {
-      odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryController::OdomCB, this);
+      odom_subscriber_ = nh_.subscribe("odom", 1, &TrajectoryController::OdomCB, this);
     }
     /*Should the queue be 1 or 2? I really only want to act on the most recent data. However, if a queue of 1 means that a new message
     won't be stored if it arrives while the previous is being processed, but could otherwise be processed before the next comes, then
@@ -140,13 +137,13 @@ namespace kobuki
     tf_filter_->registerCallback(boost::bind(&TrajectoryController::TrajectoryCB, this, _1));
     tf_filter_->setTolerance(ros::Duration(0.01));
 
-    command_publisher_ = nh_.advertise< geometry_msgs::Twist >("/cmd_vel_mux/input/navi", 10);
-    trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("/desired_odom", 10);
-    transformed_trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("/transformed_trajectory", 10);
+    command_publisher_ = nh_.advertise< geometry_msgs::Twist >("cmd_vel_mux/input/navi", 10);
+    trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("desired_odom", 10);
+    transformed_trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("transformed_trajectory", 10);
   }
   
   void TrajectoryController::configCB(turtlebot_trajectory_controller::TurtlebotControllerConfig &config, uint32_t level) {
-    ROS_INFO_STREAM_NAMED(private_name_, "Reconfigure Request:\n\tk_turn =\t" << config.k_turn << "\n\tk_drive_x =\t"<< config.k_drive_x <<"\n\tk_drive_y =\t" << config.k_drive_y);
+    ROS_INFO_STREAM_NAMED(name_, "Reconfigure Request:\n\tk_turn =\t" << config.k_turn << "\n\tk_drive_x =\t"<< config.k_drive_x <<"\n\tk_drive_y =\t" << config.k_drive_y);
     k_turn_ = config.k_turn;
     k_drive_x_ = config.k_drive_x;
     k_drive_y_ = config.k_drive_y;
@@ -155,7 +152,7 @@ namespace kobuki
   
   void TrajectoryController::setupParams()
   {
-    ROS_DEBUG_NAMED(private_name_, "Setup parameters");
+    ROS_DEBUG_NAMED(name_, "Setup parameters");
    /* 
     pnh_.param<std::string>("odom_param_name", k_drive_, 1.0);
     pnh_.param<std::string>("k_turn", k_turn_, 1.0);
@@ -175,12 +172,12 @@ void TrajectoryController::enableCB(const std_msgs::Empty::ConstPtr& msg)
 {
   if (this->enable())
   {
-    ROS_INFO_NAMED(private_name_, "Controller has been enabled.");
+    ROS_INFO_NAMED(name_, "Controller has been enabled.");
     start_time_ = ros::Time::now();
   }
   else
   {
-    ROS_DEBUG_NAMED(private_name_, "Controller was already enabled.");
+    ROS_DEBUG_NAMED(name_, "Controller was already enabled.");
   }
 };
 
@@ -188,12 +185,12 @@ void TrajectoryController::disableCB(const std_msgs::Empty::ConstPtr& msg)
 {
   if (this->disable())
   {
-    ROS_INFO_NAMED(private_name_, "Controller has been disabled.");
+    ROS_INFO_NAMED(name_, "Controller has been disabled.");
     stop();
   }
   else
   {
-    ROS_DEBUG_NAMED(private_name_, "Controller was already disabled.");
+    ROS_DEBUG_NAMED(name_, "Controller was already disabled.");
   }
 };
 
@@ -203,7 +200,7 @@ void TrajectoryController::stop()
   {
     executing_ = false;
     curr_index_ = -1;
-    ROS_WARN_NAMED(private_name_, "Interrupted trajectory.");
+    ROS_WARN_NAMED(name_, "Interrupted trajectory.");
   }
   geometry_msgs::Twist::ConstPtr command(new geometry_msgs::Twist);
   command_publisher_.publish(command);
@@ -213,12 +210,12 @@ void TrajectoryController::stop()
 void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points::ConstPtr& msg)
 {
 
-  ROS_DEBUG_NAMED(private_name_, "Trajectory received.");
+  ROS_DEBUG_NAMED(name_, "Trajectory received.");
   if (this->getState())
   {
     if(executing_)  //TODO: maybe change this to be a conditional log statement
     {
-      ROS_DEBUG_NAMED(private_name_, "Preempting previous trajectory");
+      ROS_DEBUG_NAMED(name_, "Preempting previous trajectory");
     }
     
 
@@ -233,22 +230,22 @@ void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_p
         executing_ = true;
       }
       
-      ROS_DEBUG_STREAM_THROTTLE_NAMED(5, private_name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
+      ROS_DEBUG_STREAM_THROTTLE_NAMED(5, name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
     }
     catch (tf2::TransformException &ex) {
-        ROS_WARN_THROTTLE_NAMED(5, private_name_, "Unable to execute trajectory: %s",ex.what());
+        ROS_WARN_THROTTLE_NAMED(5, name_, "Unable to execute trajectory: %s",ex.what());
         return;
     }
       
       
     transformed_trajectory_publisher_.publish(desired_trajectory_);
-    ROS_DEBUG_STREAM_NAMED(private_name_, "Preparing to execute.");
+    ROS_DEBUG_STREAM_NAMED(name_, "Preparing to execute.");
     
 
   }
   else
   {
-    ROS_DEBUG_STREAM_NAMED(private_name_, "Controller disabled, will not execute trajectory. [" << name_ <<"]");
+    ROS_DEBUG_STREAM_NAMED(name_, "Controller disabled, will not execute trajectory. [" << name_ <<"]");
   }
 
 }
@@ -261,19 +258,19 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
   odom_rate.addTime(msg->header);
   
   // TODO: move the rate logging into the rate tracker, allowing the messages to be enabled separately
-  ROS_WARN_STREAM_THROTTLE_NAMED(2, private_name_,"Odom rate: " << odom_rate.getRate() << " (" << odom_rate.getNumSamples() << " samples). Current delay: " << odom_rate.getLastDelay() << "s; Average delay: " << odom_rate.getAverageDelay() << "s.");
+  ROS_WARN_STREAM_THROTTLE_NAMED(2, name_,"Odom rate: " << odom_rate.getRate() << " (" << odom_rate.getNumSamples() << " samples). Current delay: " << odom_rate.getLastDelay() << "s; Average delay: " << odom_rate.getAverageDelay() << "s.");
   
   
   if (this->getState() && executing_) // check, if the controller is active
   {
-    ROS_DEBUG_STREAM_NAMED(private_name_, "Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
+    ROS_DEBUG_STREAM_NAMED(name_, "Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
   
     const nav_msgs::Odometry::ConstPtr desired = TrajectoryController::getDesiredState(msg->header);
     trajectory_odom_publisher_.publish(desired);
     
     geometry_msgs::Twist::ConstPtr command = TrajectoryController::ControlLaw(msg, desired);
     command_publisher_.publish(command);
-    ROS_DEBUG_STREAM_NAMED(private_name_, "Command: " << command->linear.x <<"m/s, " << command->angular.z << "rad/s");
+    ROS_DEBUG_STREAM_NAMED(name_, "Command: " << command->linear.x <<"m/s, " << command->angular.z << "rad/s");
   }
 
 }
@@ -311,17 +308,17 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
     geometry_msgs::Quaternion orientation = current->pose.pose.orientation;
 
     Eigen::Matrix2cd g_curr = TrajectoryController::getComplexMatrix(position.x, position.y, orientation.w, orientation.z);
-    ROS_DEBUG_NAMED(private_name_, "[%s] Current:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", private_name_.c_str(), g_curr.real()(0,0), g_curr.imag()(0,0), g_curr.real()(0,1), g_curr.imag()(0,1), g_curr.real()(1,0), g_curr.imag()(1,0), g_curr.real()(1,1), g_curr.imag()(1,1));
+    ROS_DEBUG_NAMED(name_, "[%s] Current:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", name_.c_str(), g_curr.real()(0,0), g_curr.imag()(0,0), g_curr.real()(0,1), g_curr.imag()(0,1), g_curr.real()(1,0), g_curr.imag()(1,0), g_curr.real()(1,1), g_curr.imag()(1,1));
 
     position = desired->pose.pose.position;
     orientation = desired->pose.pose.orientation;
 
     Eigen::Matrix2cd g_des = TrajectoryController::getComplexMatrix(position.x, position.y, orientation.w, orientation.z);
-    ROS_DEBUG_NAMED(private_name_, "[%s] Desired:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", private_name_.c_str(), g_des.real()(0,0), g_des.imag()(0,0), g_des.real()(0,1), g_des.imag()(0,1), g_des.real()(1,0), g_des.imag()(1,0), g_des.real()(1,1), g_des.imag()(1,1));
+    ROS_DEBUG_NAMED(name_, "[%s] Desired:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", name_.c_str(), g_des.real()(0,0), g_des.imag()(0,0), g_des.real()(0,1), g_des.imag()(0,1), g_des.real()(1,0), g_des.imag()(1,0), g_des.real()(1,1), g_des.imag()(1,1));
 
     Eigen::Matrix2cd g_error = g_curr.inverse() * g_des;
 
-    ROS_DEBUG_NAMED(private_name_, "[%s] Error:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", private_name_.c_str(), g_error.real()(0,0), g_error.imag()(0,0), g_error.real()(0,1), g_error.imag()(0,1), g_error.real()(1,0), g_error.imag()(1,0), g_error.real()(1,1), g_error.imag()(1,1));
+    ROS_DEBUG_NAMED(name_, "[%s] Error:\n%f + %fi, %f + %fi\n%f + %fi, %f + %fi", name_.c_str(), g_error.real()(0,0), g_error.imag()(0,0), g_error.real()(0,1), g_error.imag()(0,1), g_error.real()(1,0), g_error.imag()(1,0), g_error.real()(1,1), g_error.imag()(1,1));
 
     
     double theta_error = std::arg(g_error(0,0));
@@ -358,7 +355,7 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
     
     geometry_msgs::Twist::ConstPtr const_command = command;
 
-    ROS_DEBUG_STREAM_NAMED(private_name_, "Linear Error: " << x_error << "m, Angular Error: " << theta_error << "rad");
+    ROS_DEBUG_STREAM_NAMED(name_, "Linear Error: " << x_error << "m, Angular Error: " << theta_error << "rad");
     
     return const_command;
 }
@@ -433,9 +430,9 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(const std_msgs::Head
   odom->twist.twist.linear.y = 0;
   odom->twist.twist.angular.z = w;
 
-  ROS_DEBUG_STREAM_NAMED(private_name_, "Index: " << curr_index_ << "; # points: " << num_points); 
-  ROS_DEBUG_STREAM_NAMED(private_name_, "Preindex: " << curr_index_ << "; postindex: " << post_index);  
-  ROS_DEBUG_STREAM_NAMED(private_name_, "Desired@ " << t << "s: (" << x << "," << y << ") and " << quat.w <<"," << quat.z);
+  ROS_DEBUG_STREAM_NAMED(name_, "Index: " << curr_index_ << "; # points: " << num_points); 
+  ROS_DEBUG_STREAM_NAMED(name_, "Preindex: " << curr_index_ << "; postindex: " << post_index);  
+  ROS_DEBUG_STREAM_NAMED(name_, "Desired@ " << t << "s: (" << x << "," << y << ") and " << quat.w <<"," << quat.z);
   
 
 

@@ -48,7 +48,7 @@ namespace kobuki
 {
 
 /**
- * @brief Nodelet-wrapper of the BumpBlinkController class
+ * @brief Nodelet-wrapper of the TurtlebotTrajectoryController class
  */
 class TrajectoryControllerNodelet : public nodelet::Nodelet
 {
@@ -72,7 +72,7 @@ public:
     name = name.substr(pos + 1);
 
     NODELET_INFO_STREAM("Initialising nodelet... [" << name << "]");
-    controller_.reset(new TrajectoryController(nh, pnh, name));
+    controller_ = std::make_shared<TrajectoryController>(nh, pnh);
 
     // Initialises the controller
     if (controller_->init())
@@ -85,7 +85,7 @@ public:
     }
   }
 private:
-  boost::shared_ptr<TrajectoryController> controller_;
+  std::shared_ptr<TrajectoryController> controller_;
 };
 
 } // namespace kobuki
