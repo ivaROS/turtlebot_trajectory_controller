@@ -14,8 +14,10 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         cmake_modules 
                                         geometry_msgs 
                                         trajectory_generator
+                                        tf
                                         tf2_ros
                                         tf2
+                                        tf2_eigen
                                         dynamic_reconfigure
                                         )
 
@@ -35,8 +37,10 @@ catkin_package(INCLUDE_DIRS include
                               yocs_controllers 
                               geometry_msgs 
                               trajectory_generator
+                              tf
                               tf2_ros
                               tf2
+                              tf2_eigen
                DEPENDS   
                               Eigen
                               )
