@@ -48,9 +48,12 @@
 ** Includes
 *****************************************************************************/
 // %Tag(FULLTEXT)%
-#include <trajectory_generator_ros_interface.h>
+//#include <trajectory_generator_ros_interface.h>
+#include <pips_trajectory_msgs/trajectory_point.h>
+#include <pips_trajectory_msgs/trajectory_points.h>
+
 #include "rate_tracker.h"
-#include <tf2_trajectory.h>
+#include <tf2_pips/tf2_trajectory.h>
 #include <turtlebot_trajectory_controller/TurtlebotControllerConfig.h>
 
 #include <ros/ros.h>
@@ -74,7 +77,7 @@
 typedef std::shared_ptr<tf2_ros::Buffer> tf_buffer_ptr;
 typedef std::shared_ptr<tf2_ros::TransformListener> transform_listener_ptr;
 typedef std::shared_ptr<ros::AsyncSpinner> spinner_ptr;
-typedef tf2_ros::MessageFilter<trajectory_generator::trajectory_points> tf_filter;
+typedef tf2_ros::MessageFilter<pips_trajectory_msgs::trajectory_points> tf_filter;
 
 namespace kobuki
 {
@@ -133,7 +136,7 @@ protected:
   int trajectory_queue_size_ = 1;
   bool use_odom_spinner_=false;
   
-  trajectory_generator::trajectory_points desired_trajectory_;
+  pips_trajectory_msgs::trajectory_points desired_trajectory_;
   size_t curr_index_;
   bool executing_;
   
@@ -141,7 +144,7 @@ protected:
   boost::mutex trajectory_mutex_;
   boost::mutex odom_mutex_;
   
-  message_filters::Subscriber<trajectory_generator::trajectory_points> trajectory_subscriber_;
+  message_filters::Subscriber<pips_trajectory_msgs::trajectory_points> trajectory_subscriber_;
   std::shared_ptr<tf_filter> tf_filter_;
   
 
@@ -165,7 +168,7 @@ protected:
    */
   virtual void OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
   
-  void TrajectoryCB(const trajectory_generator::trajectory_points::ConstPtr& msg);
+  void TrajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg);
   
 
   nav_msgs::OdometryPtr getDesiredState(const std_msgs::Header& header);

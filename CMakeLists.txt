@@ -3,7 +3,6 @@ project(turtlebot_trajectory_controller)
 
 #LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-#set(trajectory_generator_DIR ../trajectory_generator/build/devel/share/trajectory_generator/cmake)
 
 find_package(catkin REQUIRED COMPONENTS roscpp
                                         nodelet
@@ -19,6 +18,8 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         tf2
                                         tf2_eigen
                                         dynamic_reconfigure
+                                        pips_trajectory_msgs
+                                        tf2_pips
                                         )
 
 find_package(Eigen3 REQUIRED)
@@ -41,6 +42,8 @@ catkin_package(INCLUDE_DIRS include
                               tf2_ros
                               tf2
                               tf2_eigen
+                              pips_trajectory_msgs
+                              tf2_pips
                DEPENDS   
                               Eigen
                               )
@@ -57,13 +60,19 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
 
 add_library(trajectory_controller 
    src/trajectory_controller.cpp)
+   
 add_dependencies(trajectory_controller 
-   kobuki_msgs_gencpp
-   ${PROJECT_NAME}_gencfg
+   #kobuki_msgs_gencpp
+   #${PROJECT_NAME}_gencfg
+   
+   ##The below 2 include all possible dependency message generation targets
+   ${catkin_EXPORTED_TARGETS}
+   ${${PROJECT_NAME}_EXPORTED_TARGETS}
    )
    
 target_link_libraries(trajectory_controller 
-   ${catkin_LIBRARIES})
+   ${catkin_LIBRARIES}
+   )
 
 add_executable(trajectory_controller_node
    src/turtlebot_controller_node.cpp )
@@ -80,9 +89,11 @@ target_link_libraries(trajectory_controller_nodelet
    trajectory_controller ${catkin_LIBRARIES})
 
 add_executable(trajectory_sender
-   src/send_test_trajectory.cpp)
+   src/send_test_trajectory.cpp
+   )
 target_link_libraries(trajectory_sender
-   ${catkin_LIBRARIES})
+   ${catkin_LIBRARIES}
+   )
 
 ##install(TARGETS bump_blink_controller_nodelet
 ##        DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})

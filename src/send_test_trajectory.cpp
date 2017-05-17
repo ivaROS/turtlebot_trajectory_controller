@@ -115,7 +115,7 @@ public:
     button_subscriber_ = nh_.subscribe("/mobile_base/events/button", 10, &TrajectoryTester::buttonCB, this);
 
     odom_subscriber_ = nh_.subscribe("/odom", 1, &TrajectoryTester::OdomCB, this);
-    trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("/desired_trajectory", 10);
+    trajectory_publisher_ = nh_.advertise< pips_trajectory_msgs::trajectory_points >("/desired_trajectory", 10);
     path_publisher_ = nh_.advertise<nav_msgs::Path>("/desired_path",10);
     
     nav_msgs::OdometryPtr init_odom(new nav_msgs::Odometry);
@@ -149,8 +149,8 @@ private:
    */
   void OdomCB(const nav_msgs::OdometryPtr& msg);
 
-  trajectory_generator::trajectory_points generate_circle_trajectory(const nav_msgs::OdometryPtr& msg);
-  trajectory_generator::trajectory_points generate_straight_trajectory(const nav_msgs::OdometryPtr& msg);
+  pips_trajectory_msgs::trajectory_points generate_circle_trajectory(const nav_msgs::OdometryPtr& msg);
+  pips_trajectory_msgs::trajectory_points generate_straight_trajectory(const nav_msgs::OdometryPtr& msg);
 
 };
 
@@ -161,7 +161,7 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr& msg)
     ROS_INFO_STREAM("Button pressed: sending trajectory");
 
     nav_msgs::OdometryPtr odom = nav_msgs::OdometryPtr(curOdom_);
-    trajectory_generator::trajectory_points trajectory = TrajectoryTester::generate_circle_trajectory(odom);
+    pips_trajectory_msgs::trajectory_points trajectory = TrajectoryTester::generate_circle_trajectory(odom);
     
     
     
@@ -173,7 +173,7 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr& msg)
     ROS_INFO_STREAM("Button pressed: sending trajectory");
 
     nav_msgs::OdometryPtr odom = nav_msgs::OdometryPtr(curOdom_);
-    trajectory_generator::trajectory_points trajectory = TrajectoryTester::generate_circle_trajectory(odom);
+    pips_trajectory_msgs::trajectory_points trajectory = TrajectoryTester::generate_circle_trajectory(odom);
     
     
     
@@ -186,7 +186,7 @@ void TrajectoryTester::buttonCB(const kobuki_msgs::ButtonEventPtr& msg)
 };
 
 
-trajectory_generator::trajectory_points TrajectoryTester::generate_straight_trajectory(const nav_msgs::OdometryPtr& odom_msg)
+pips_trajectory_msgs::trajectory_points TrajectoryTester::generate_straight_trajectory(const nav_msgs::OdometryPtr& odom_msg)
 {
     std::string offset_key, fw_vel_key, dep_angle_key;
     double fw_vel = .05;
@@ -237,12 +237,12 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_straight_traj
     
     traj_gen_bridge.publishPaths(path_publisher_, trajectories);
 
-    trajectory_generator::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
+    pips_trajectory_msgs::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
     
     return trajectory_msg;
 }
 
-trajectory_generator::trajectory_points TrajectoryTester::generate_circle_trajectory(const nav_msgs::OdometryPtr& odom_msg)
+pips_trajectory_msgs::trajectory_points TrajectoryTester::generate_circle_trajectory(const nav_msgs::OdometryPtr& odom_msg)
 {
     std::string r_key, fw_vel_key;
     double fw_vel = .05;
@@ -290,7 +290,7 @@ trajectory_generator::trajectory_points TrajectoryTester::generate_circle_trajec
     traj_gen_bridge.publishPaths(path_publisher_, trajectories);
 
 
-    trajectory_generator::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
+    pips_trajectory_msgs::trajectory_points trajectory_msg = traj->toTrajectoryMsg ();
     
     return trajectory_msg;
 }

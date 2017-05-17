@@ -139,7 +139,7 @@ namespace kobuki
 
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("cmd_vel_mux/input/navi", 10);
     trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("desired_odom", 10);
-    transformed_trajectory_publisher_ = nh_.advertise< trajectory_generator::trajectory_points >("transformed_trajectory", 10);
+    transformed_trajectory_publisher_ = nh_.advertise< pips_trajectory_msgs::trajectory_points >("transformed_trajectory", 10);
   }
   
   void TrajectoryController::configCB(turtlebot_trajectory_controller::TurtlebotControllerConfig &config, uint32_t level) {
@@ -207,7 +207,7 @@ void TrajectoryController::stop()
 }
 
 
-void TrajectoryController::TrajectoryCB(const trajectory_generator::trajectory_points::ConstPtr& msg)
+void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg)
 {
 
   ROS_DEBUG_NAMED(name_, "Trajectory received.");
@@ -363,7 +363,7 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
 nav_msgs::OdometryPtr TrajectoryController::getDesiredState(const std_msgs::Header& header)
 {
   nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);
-  trajectory_generator::trajectory_point pre_point, post_point;
+  pips_trajectory_msgs::trajectory_point pre_point, post_point;
   double pre_time_fraction = 1;
   double t;
   std::size_t num_points;
