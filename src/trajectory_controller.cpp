@@ -43,7 +43,7 @@
 *****************************************************************************/
 // %Tag(FULLTEXT)%
 #include "trajectory_controller.h"
-#include <tf2_trajectory.h>
+#include <tf2_pips/tf2_trajectory.h>
 #include <turtlebot_trajectory_controller/TurtlebotControllerConfig.h>
 
 #include <ros/ros.h>
