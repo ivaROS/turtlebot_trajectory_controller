@@ -137,7 +137,7 @@ namespace kobuki
     tf_filter_->registerCallback(boost::bind(&TrajectoryController::TrajectoryCB, this, _1));
     tf_filter_->setTolerance(ros::Duration(0.01));
 
-    command_publisher_ = nh_.advertise< geometry_msgs::Twist >("cmd_vel_mux/input/navi", 10);
+    command_publisher_ = nh_.advertise< geometry_msgs::Twist >("cmd_vel_mux/input/navi", 1);
     trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("desired_odom", 10);
     transformed_trajectory_publisher_ = nh_.advertise< pips_trajectory_msgs::trajectory_points >("transformed_trajectory", 10);
   }
@@ -147,7 +147,12 @@ namespace kobuki
     k_turn_ = config.k_turn;
     k_drive_x_ = config.k_drive_x;
     k_drive_y_ = config.k_drive_y;
-    
+/*
+max_ang_v = config.max_ang_v;
+max_ang_acc = config.max_ang_acc;
+max_lin_v = config.max_lin_v;
+max_lin_acc = config.max_lin_acc;
+    */
   }
   
   void TrajectoryController::setupParams()
@@ -194,7 +199,7 @@ void TrajectoryController::disableCB(const std_msgs::Empty::ConstPtr& msg)
   }
 };
 
-void TrajectoryController::stop()
+void TrajectoryController::stop(bool force_stop)
 {
   if(executing_)
   {
@@ -202,8 +207,11 @@ void TrajectoryController::stop()
     curr_index_ = -1;
     ROS_WARN_NAMED(name_, "Interrupted trajectory.");
   }
-  geometry_msgs::Twist::ConstPtr command(new geometry_msgs::Twist);
-  command_publisher_.publish(command);
+  if(force_stop)
+  {
+    geometry_msgs::Twist::ConstPtr command(new geometry_msgs::Twist);
+    command_publisher_.publish(command);
+  }
 }
 
 
@@ -211,6 +219,7 @@ void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_p
 {
 
   ROS_DEBUG_NAMED(name_, "Trajectory received.");
+  ROS_INFO_STREAM("RECEIVED TRAJECTORY");
   if (this->getState())
   {
     if(executing_)  //TODO: maybe change this to be a conditional log statement
@@ -263,6 +272,10 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
   
   if (this->getState() && executing_) // check, if the controller is active
   {
+
+	if(send_command_)
+{
+
     ROS_DEBUG_STREAM_NAMED(name_, "Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
   
     const nav_msgs::Odometry::ConstPtr desired = TrajectoryController::getDesiredState(msg->header);
@@ -271,6 +284,11 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
     geometry_msgs::Twist::ConstPtr command = TrajectoryController::ControlLaw(msg, desired);
     command_publisher_.publish(command);
     ROS_DEBUG_STREAM_NAMED(name_, "Command: " << command->linear.x <<"m/s, " << command->angular.z << "rad/s");
+send_command_=false;
+}
+else
+{send_command_=true;
+}
   }
 
 }
@@ -342,7 +360,34 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
     
     
     */
+/*
+double delta_t = .05;
+double max_ang_v = 4;//5;
+double max_ang_acc = 1.78;
+double max_lin_v = .5;//.7;
+double max_lin_acc = .55;
 
+
+    v_lin = near_identity::saturate(v_lin, 0, max_lin_v);
+    v_ang = near_identity::saturate(v_ang, -max_ang_v, max_ang_v);
+*/
+
+	if(v_lin > .5) v_lin = .5;
+	if(v_ang > 4) v_ang = 4;
+	if(v_ang < -4) v_ang = -4;
+
+/*
+
+    double ang_accel = (v_ang - current->twist.twist.angular.z)/ delta_t;
+    ang_accel = near_identity::applyLimits(ang_accel, v_ang, -max_ang_v, max_ang_v,  -max_ang_acc, max_ang_acc);
+
+    v_ang = current->twist.twist.angular.z + ang_accel * delta_t;
+
+    double lin_accel = (v_lin - current->twist.twist.linear.x)/delta_t;
+    lin_accel = near_identity::applyLimits(lin_accel, v_lin, -max_lin_v, max_lin_v, -max_lin_acc, max_lin_acc);
+
+    v_lin = current->twist.twist.linear.x + lin_accel * delta_t;
+*/
     geometry_msgs::Vector3 linear;
     linear.x = v_lin;
 

@@ -119,7 +119,7 @@ private:
   std::shared_ptr<ReconfigureServer> reconfigure_server_;
 
 protected:
-  
+  bool send_command_=true;
   rate_tracker odom_rate;
   spinner_ptr odom_spinner_;
   ros::NodeHandle odom_nh_;
@@ -160,7 +160,7 @@ protected:
    */
   void disableCB(const std_msgs::Empty::ConstPtr& msg);
   
-  void stop();
+  void stop(bool force_stop=false);
 
   /**
    * @brief Turns on/off a LED, when a bumper is pressed/released
