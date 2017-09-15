@@ -119,7 +119,6 @@ private:
   std::shared_ptr<ReconfigureServer> reconfigure_server_;
 
 protected:
-  bool send_command_=true;
   rate_tracker odom_rate;
   spinner_ptr odom_spinner_;
   ros::NodeHandle odom_nh_;

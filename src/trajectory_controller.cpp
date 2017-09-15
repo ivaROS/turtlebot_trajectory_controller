@@ -273,9 +273,6 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
   if (this->getState() && executing_) // check, if the controller is active
   {
 
-	if(send_command_)
-{
-
     ROS_DEBUG_STREAM_NAMED(name_, "Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
   
     const nav_msgs::Odometry::ConstPtr desired = TrajectoryController::getDesiredState(msg->header);
@@ -284,11 +281,7 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
     geometry_msgs::Twist::ConstPtr command = TrajectoryController::ControlLaw(msg, desired);
     command_publisher_.publish(command);
     ROS_DEBUG_STREAM_NAMED(name_, "Command: " << command->linear.x <<"m/s, " << command->angular.z << "rad/s");
-send_command_=false;
-}
-else
-{send_command_=true;
-}
+
   }
 
 }
@@ -371,7 +364,7 @@ double max_lin_acc = .55;
     v_lin = near_identity::saturate(v_lin, 0, max_lin_v);
     v_ang = near_identity::saturate(v_ang, -max_ang_v, max_ang_v);
 */
-
+	//Simple thresholding, likely unnecessary
 	if(v_lin > .5) v_lin = .5;
 	if(v_ang > 4) v_ang = 4;
 	if(v_ang < -4) v_ang = -4;
