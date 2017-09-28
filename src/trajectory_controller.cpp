@@ -46,6 +46,8 @@
 #include <tf2_pips/tf2_trajectory.h>
 #include <turtlebot_trajectory_controller/TurtlebotControllerConfig.h>
 
+#include <dynamic_reconfigure/server.h>
+
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
 #include <yocs_controllers/default_controller.hpp>
@@ -340,6 +342,7 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
       Acceleration limits: possibly limit the magnitude of velocity difference between current vel and desired
       Note, however, that the yocs_velocity_smoother package already applies robot velocity/acceleration limits. I am not sure whether it is being used at the moment, or if it is adjustable, or if additional limits are needed here. 
     
+    Update: yocs_velocity_smoother is not used by default, and it is adjustable
     
     */
 
@@ -360,6 +363,8 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
     return const_command;
 }
 
+// TODO: look into trying to follow the trajectory more as a function of position than of time;
+// Possibly rerun near_identity;
 nav_msgs::OdometryPtr TrajectoryController::getDesiredState(const std_msgs::Header& header)
 {
   nav_msgs::OdometryPtr odom(new nav_msgs::Odometry);

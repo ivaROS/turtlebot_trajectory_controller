@@ -61,7 +61,6 @@
 #include <yocs_controllers/default_controller.hpp>
 #include <Eigen/Dense>
 #include <geometry_msgs/Twist.h>
-#include <dynamic_reconfigure/server.h>
 #include <nav_msgs/Odometry.h>
 
 #include <ros/callback_queue.h>
@@ -71,6 +70,7 @@
 
 #include <tf2_ros/message_filter.h>
 #include <message_filters/subscriber.h>
+#include <dynamic_reconfigure/server.h>
 
 #include <memory>
 
@@ -78,6 +78,10 @@ typedef std::shared_ptr<tf2_ros::Buffer> tf_buffer_ptr;
 typedef std::shared_ptr<tf2_ros::TransformListener> transform_listener_ptr;
 typedef std::shared_ptr<ros::AsyncSpinner> spinner_ptr;
 typedef tf2_ros::MessageFilter<pips_trajectory_msgs::trajectory_points> tf_filter;
+
+//TODO: make a list of which types could be forward-declared rather than included
+//class dynamic_reconfigure::Server;
+
 
 namespace kobuki
 {
