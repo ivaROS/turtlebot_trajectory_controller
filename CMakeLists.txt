@@ -22,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         tf2_pips
                                         )
 
-find_package(Eigen3 REQUIRED)
+#find_package(Eigen3 REQUIRED)
 
 generate_dynamic_reconfigure_options(
   cfg/TurtlebotController.cfg
@@ -45,13 +45,13 @@ catkin_package(INCLUDE_DIRS include
                               pips_trajectory_msgs
                               tf2_pips
                DEPENDS   
-                              Eigen
+#                              Eigen
                               )
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN_INCLUDE_DIR}
+#  ${EIGEN_INCLUDE_DIR}
 )
 
 
