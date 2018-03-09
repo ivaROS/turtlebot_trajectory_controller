@@ -17,7 +17,13 @@ std::list<ros::Duration> delays;
 
 size_t num_samples=0;
 
+
 public:
+  
+  
+rate_tracker(size_t window_size = 50) : max_size(window_size)
+{
+}
 
 ros::Time now()
 {

@@ -269,7 +269,7 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
   odom_rate.addTime(msg->header);
   
   // TODO: move the rate logging into the rate tracker, allowing the messages to be enabled separately
-  ROS_WARN_STREAM_THROTTLE_NAMED(2, name_,"Odom rate: " << odom_rate.getRate() << " (" << odom_rate.getNumSamples() << " samples). Current delay: " << odom_rate.getLastDelay() << "s; Average delay: " << odom_rate.getAverageDelay() << "s.");
+  ROS_DEBUG_STREAM_THROTTLE_NAMED(2, name_,"Odom rate: " << odom_rate.getRate() << " (" << odom_rate.getNumSamples() << " samples). Current delay: " << odom_rate.getLastDelay() << "s; Average delay: " << odom_rate.getAverageDelay() << "s.");
   
   
   if (this->getState() && executing_) // check, if the controller is active
