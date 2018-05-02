@@ -78,11 +78,15 @@ namespace kobuki
  * A simple nodelet-based controller for Kobuki, which makes one of Kobuki's LEDs blink, when a bumper is pressed.
  */
 
-  TrajectoryController::TrajectoryController(ros::NodeHandle& nh, ros::NodeHandle& pnh) : 
+  TrajectoryController::TrajectoryController(ros::NodeHandle& nh, ros::NodeHandle& pnh, const std::string& name) : 
     Controller(), 
     nh_(nh), 
-    pnh_(pnh, name_)
-  { };
+    pnh_(pnh, name),
+    name_(name)
+  { 
+    tfBuffer_ = std::make_shared<tf2_ros::Buffer>(); //optional parameter: ros::Duration(cache time) (default=10) (though it doesn't seem to accept it!)
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
+  }
   
 
 
@@ -92,8 +96,7 @@ namespace kobuki
    */
   bool TrajectoryController::init()
   {
-    tfBuffer_ = std::make_shared<tf2_ros::Buffer>(); //optional parameter: ros::Duration(cache time) (default=10) (though it doesn't seem to accept it!)
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
+
     
     reconfigure_server_ = std::make_shared<ReconfigureServer>(pnh_);
     reconfigure_server_->setCallback(boost::bind(&TrajectoryController::configCB, this, _1, _2));
@@ -114,8 +117,8 @@ namespace kobuki
   {
     ROS_DEBUG_NAMED(name_, "Setup publishers and subscribers");
     
-    enable_controller_subscriber_ = nh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
-    disable_controller_subscriber_ = nh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
+    enable_controller_subscriber_ = pnh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
+    disable_controller_subscriber_ = pnh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
     
     //Not sure if it is good idea to use the spinner: only one asyncspinner can run in a process, and when using nodelets that is very dangerous assumption
     if(use_odom_spinner_)
@@ -136,12 +139,13 @@ namespace kobuki
     
     tf_filter_.reset(new tf_filter(trajectory_subscriber_, *tfBuffer_, odom_frame_id_, trajectory_queue_size_, nh_));
     trajectory_subscriber_.subscribe(nh_, "desired_trajectory", trajectory_queue_size_);
+        
     tf_filter_->registerCallback(boost::bind(&TrajectoryController::TrajectoryCB, this, _1));
     tf_filter_->setTolerance(ros::Duration(0.01));
 
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("cmd_vel_mux/input/navi", 1);
-    trajectory_odom_publisher_ = nh_.advertise< nav_msgs::Odometry >("desired_odom", 10);
-    transformed_trajectory_publisher_ = nh_.advertise< pips_trajectory_msgs::trajectory_points >("transformed_trajectory", 10);
+    trajectory_odom_publisher_ = pnh_.advertise< nav_msgs::Odometry >("desired_odom", 10);
+    transformed_trajectory_publisher_ = pnh_.advertise< pips_trajectory_msgs::trajectory_points >("transformed_trajectory", 10);
   }
   
   void TrajectoryController::configCB(turtlebot_trajectory_controller::TurtlebotControllerConfig &config, uint32_t level) {
@@ -220,8 +224,9 @@ void TrajectoryController::stop(bool force_stop)
 void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg)
 {
 
-  ROS_DEBUG_NAMED(name_, "Trajectory received.");
-  ROS_INFO_STREAM("RECEIVED TRAJECTORY");
+  ROS_DEBUG_STREAM_NAMED(name_, "Trajectory received. Trajectory time: "  << msg->header.stamp << ", current time: " << ros::Time::now());
+  ROS_INFO_STREAM_NAMED(name_, "RECEIVED TRAJECTORY");
+  
   if (this->getState())
   {
     if(executing_)  //TODO: maybe change this to be a conditional log statement
@@ -241,10 +246,10 @@ void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_p
         executing_ = true;
       }
       
-      ROS_DEBUG_STREAM_THROTTLE_NAMED(5, name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
+      ROS_DEBUG_STREAM_NAMED( name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
     }
     catch (tf2::TransformException &ex) {
-        ROS_WARN_THROTTLE_NAMED(5, name_, "Unable to execute trajectory: %s",ex.what());
+        ROS_WARN_NAMED( name_, "Unable to execute trajectory: %s",ex.what());
         return;
     }
       

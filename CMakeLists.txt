@@ -61,6 +61,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
 add_library(trajectory_controller 
    src/trajectory_controller.cpp)
    
+target_compile_options(trajectory_controller PUBLIC -std=c++11 -Wall
+  )
+  
 add_dependencies(trajectory_controller 
    #kobuki_msgs_gencpp
    #${PROJECT_NAME}_gencfg

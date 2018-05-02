@@ -94,7 +94,7 @@ namespace kobuki
 class TrajectoryController : public yocs::Controller
 {
 public:
-  TrajectoryController(ros::NodeHandle& nh, ros::NodeHandle& pnh);
+  TrajectoryController(ros::NodeHandle& nh, ros::NodeHandle& pnh, const std::string& name=DEFAULT_NAME);
   ~TrajectoryController()
   {
     if(odom_spinner_)
@@ -110,11 +110,11 @@ public:
   virtual bool init();
 
 protected:
-  ros::NodeHandle nh_;
+  ros::NodeHandle nh_, pnh_;
 
 private:
-  std::string name_ = "RTController";
-  ros::NodeHandle pnh_;
+  static constexpr const char* DEFAULT_NAME="trajectory_controller";
+  std::string name_;
   void configCB(turtlebot_trajectory_controller::TurtlebotControllerConfig &config, uint32_t level);
   void setupPublishersSubscribers();
   void setupParams();
@@ -181,6 +181,7 @@ protected:
   geometry_msgs::Twist::ConstPtr ControlLaw(const nav_msgs::Odometry::ConstPtr& current, const nav_msgs::Odometry::ConstPtr& desired);
 
 };
+
 
 } // namespace kobuki
 // %EndTag(FULLTEXT)%
