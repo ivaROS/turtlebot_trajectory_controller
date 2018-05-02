@@ -138,7 +138,7 @@ namespace kobuki
     2 would be better. But if 2 means that older info will be used while newer info is already waiting in the queue, then should use 1 */
     
     tf_filter_.reset(new tf_filter(trajectory_subscriber_, *tfBuffer_, odom_frame_id_, trajectory_queue_size_, nh_));
-    trajectory_subscriber_.subscribe(nh_, "desired_trajectory", trajectory_queue_size_);
+    trajectory_subscriber_.subscribe(pnh_, "desired_trajectory", trajectory_queue_size_);
         
     tf_filter_->registerCallback(boost::bind(&TrajectoryController::TrajectoryCB, this, _1));
     tf_filter_->setTolerance(ros::Duration(0.01));
