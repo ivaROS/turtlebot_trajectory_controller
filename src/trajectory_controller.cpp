@@ -168,13 +168,34 @@ max_lin_acc = config.max_lin_acc;
     pnh_.param<std::string>("odom_param_name", k_drive_, 1.0);
     pnh_.param<std::string>("k_turn", k_turn_, 1.0);
     */
-    nh_.param<std::string>("/mobile_base/odom_frame", odom_frame_id_, "odom");
-    nh_.param<std::string>("/mobile_base/base_frame", base_frame_id_, "base_footprint");
+   
+    
+    ROS_INFO_NAMED(name_, "Waiting for odometry message");
+    const nav_msgs::Odometry::ConstPtr odom_msg = ros::topic::waitForMessage<nav_msgs::Odometry>("odom", nh_, ros::Duration(5.0));
+    
+    if(odom_msg)
+    {
+        ROS_INFO_NAMED(name_, "Odometry message received");
+    }
+    else
+    {
+        ROS_ERROR_NAMED(name_, "Odometry message not received");
+    }
+
+    
+    ROS_DEBUG_NAMED(name_, "Setup parameters");
+    base_frame_id_ = odom_msg->child_frame_id;
+    odom_frame_id_ = odom_msg->header.frame_id;
+    
+    
+    //nh_.param<std::string>("odom_frame_id", odom_frame_id_, "odom");
+    //nh_.param<std::string>("base_frame_id", base_frame_id_, "base_footprint");
+    
+    nh_.setParam("base_frame_id", base_frame_id_);
+    nh_.setParam("odom_frame_id", odom_frame_id_);
 
     pnh_.param<bool>("odom_spinner", use_odom_spinner_, false);
-    
     pnh_.setParam("odom_spinner", use_odom_spinner_);
-
 
   }
   
