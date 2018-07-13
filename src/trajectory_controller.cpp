@@ -69,7 +69,7 @@
 
 
 
-namespace kobuki
+namespace turtlebot_trajectory_controller
 {
 
 /**

@@ -44,7 +44,7 @@
 #include <turtlebot_trajectory_controller/trajectory_controller.h>
 
 
-namespace kobuki
+namespace turtlebot_trajectory_controller
 {
 
 /**
@@ -90,6 +90,6 @@ private:
 
 } // namespace kobuki
 
-PLUGINLIB_EXPORT_CLASS(kobuki::TrajectoryControllerNodelet,
+PLUGINLIB_EXPORT_CLASS(turtlebot_trajectory_controller::TrajectoryControllerNodelet,
                        nodelet::Nodelet);
 // %EndTag(FULLTEXT)%

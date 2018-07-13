@@ -41,8 +41,8 @@
 ** Ifdefs
 *****************************************************************************/
 
-#ifndef TRAJECTORY_CONTROLLER_H_
-#define TRAJECTORY_CONTROLLER_H_
+#ifndef TURTLEBOT_TRAJECTORY_CONTROLLER_H_
+#define TURTLEBOT_TRAJECTORY_CONTROLLER_H_
 
 /*****************************************************************************
 ** Includes
@@ -83,14 +83,9 @@ typedef tf2_ros::MessageFilter<pips_trajectory_msgs::trajectory_points> tf_filte
 //class dynamic_reconfigure::Server;
 
 
-namespace kobuki
+namespace turtlebot_trajectory_controller
 {
 
-/**
- * @ brief A simple bump-blink-controller
- *
- * A simple nodelet-based controller for Kobuki, which makes one of Kobuki's LEDs blink, when a bumper is pressed.
- */
 class TrajectoryController : public yocs::Controller
 {
 public:
@@ -188,4 +183,4 @@ protected:
 
 } // namespace kobuki
 // %EndTag(FULLTEXT)%
-#endif /* TRAJECTORY_CONTROLLER_H_ */
+#endif /* TURTLEBOT_TRAJECTORY_CONTROLLER_H_ */
