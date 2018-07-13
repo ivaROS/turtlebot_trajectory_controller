@@ -209,7 +209,7 @@ pips_trajectory_msgs::trajectory_points TrajectoryTester::generate_straight_traj
     }
     
 
-    ni_trajectory_ptr traj = std::make_shared<ni_trajectory>();
+    trajectory_ptr traj = std::make_shared<ni_trajectory>();
     traj->header.frame_id = base_frame_id_;
     traj->header.stamp = odom_msg->header.stamp;
     
@@ -232,7 +232,7 @@ pips_trajectory_msgs::trajectory_points TrajectoryTester::generate_straight_traj
     
 
     
-    std::vector<ni_trajectory_ptr> trajectories;
+    std::vector<trajectory_ptr> trajectories;
     trajectories.push_back(traj);
     
     traj_gen_bridge.publishPaths(path_publisher_, trajectories);
@@ -262,7 +262,7 @@ pips_trajectory_msgs::trajectory_points TrajectoryTester::generate_circle_trajec
     //circle_traj_func trajf(fw_vel,r);
     
 
-    ni_trajectory_ptr traj = std::make_shared<ni_trajectory>();
+    trajectory_ptr traj = std::make_shared<trajectory_states>();
     traj->header.frame_id = base_frame_id_;
     traj->header.stamp = odom_msg->header.stamp;
     
@@ -284,7 +284,7 @@ pips_trajectory_msgs::trajectory_points TrajectoryTester::generate_circle_trajec
     
 
     
-    std::vector<ni_trajectory_ptr> trajectories;
+    std::vector<trajectory_ptr> trajectories;
     trajectories.push_back(traj);
     
     traj_gen_bridge.publishPaths(path_publisher_, trajectories);

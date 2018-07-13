@@ -41,7 +41,7 @@
 // %Tag(FULLTEXT)%
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
-#include "trajectory_controller.h"
+#include <turtlebot_trajectory_controller/trajectory_controller.h>
 
 
 namespace kobuki

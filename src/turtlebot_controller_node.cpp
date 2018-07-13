@@ -1,4 +1,4 @@
-#include "trajectory_controller.h"
+#include <turtlebot_trajectory_controller/trajectory_controller.h>
 #include <ros/ros.h>
 
 

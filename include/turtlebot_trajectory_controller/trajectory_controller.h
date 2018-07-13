@@ -179,6 +179,9 @@ protected:
   Eigen::Matrix2cd getComplexMatrix(double x, double y, double cosTh, double sinTh);
 
   geometry_msgs::Twist::ConstPtr ControlLaw(const nav_msgs::Odometry::ConstPtr& current, const nav_msgs::Odometry::ConstPtr& desired);
+  
+  bool isReady(const std_msgs::Header& header);
+  
 
 };
 

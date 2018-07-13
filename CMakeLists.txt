@@ -91,12 +91,12 @@ add_dependencies(trajectory_controller_nodelet
 target_link_libraries(trajectory_controller_nodelet
    trajectory_controller ${catkin_LIBRARIES})
 
-add_executable(trajectory_sender
-   src/send_test_trajectory.cpp
-   )
-target_link_libraries(trajectory_sender
-   ${catkin_LIBRARIES}
-   )
+# add_executable(trajectory_sender
+#    src/send_test_trajectory.cpp
+#    )
+# target_link_libraries(trajectory_sender
+#    ${catkin_LIBRARIES}
+#    )
 
 ##install(TARGETS bump_blink_controller_nodelet
 ##        DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})

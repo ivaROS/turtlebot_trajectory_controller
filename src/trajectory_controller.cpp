@@ -42,7 +42,7 @@
 ** Includes
 *****************************************************************************/
 // %Tag(FULLTEXT)%
-#include "trajectory_controller.h"
+#include <turtlebot_trajectory_controller/trajectory_controller.h>
 #include <tf2_pips/tf2_trajectory.h>
 #include <turtlebot_trajectory_controller/TurtlebotControllerConfig.h>
 
@@ -164,22 +164,22 @@ max_lin_acc = config.max_lin_acc;
   void TrajectoryController::setupParams()
   {
     ROS_DEBUG_NAMED(name_, "Setup parameters");
-   /* 
-    pnh_.param<std::string>("odom_param_name", k_drive_, 1.0);
-    pnh_.param<std::string>("k_turn", k_turn_, 1.0);
-    */
-   
-    
+
     ROS_INFO_NAMED(name_, "Waiting for odometry message");
-    const nav_msgs::Odometry::ConstPtr odom_msg = ros::topic::waitForMessage<nav_msgs::Odometry>("odom", nh_, ros::Duration(5.0));
-    
-    if(odom_msg)
+
+    nav_msgs::Odometry::ConstPtr odom_msg;
+    while(!odom_msg)
     {
-        ROS_INFO_NAMED(name_, "Odometry message received");
-    }
-    else
-    {
-        ROS_ERROR_NAMED(name_, "Odometry message not received");
+        odom_msg = ros::topic::waitForMessage<nav_msgs::Odometry>("odom", nh_, ros::Duration(1.0));
+        
+        if(odom_msg)
+        {
+            ROS_INFO_NAMED(name_, "Odometry message received");
+        }
+        else
+        {
+            ROS_ERROR_NAMED(name_, "Odometry message not received");
+        }
     }
 
     
@@ -315,7 +315,20 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
 }
 
 
-
+bool TrajectoryController::isReady(const std_msgs::Header& header)
+{
+  if(!curr_odom_)
+  {
+    ROS_WARN_STREAM_THROTTLE_NAMED(5 , name_,  "No odometry received!");
+    return false;
+  }
+  else
+  {
+    ros::Duration delta_t = curr_odom_->header.stamp - header.stamp;
+    ROS_DEBUG_STREAM_NAMED(name_, "Odometry is " << delta_t << " newer than current sensor data");
+  }
+  return true;
+}
 
 
 Eigen::Matrix2cd TrajectoryController::getComplexMatrix(double x, double y, double quat_w, double quat_z)
