@@ -407,9 +407,9 @@ double max_lin_acc = .55;
     v_ang = near_identity::saturate(v_ang, -max_ang_v, max_ang_v);
 */
 	//Simple thresholding, likely unnecessary
-	if(v_lin > .5) v_lin = .5;
-	if(v_ang > 4) v_ang = 4;
-	if(v_ang < -4) v_ang = -4;
+	// if(v_lin > .5) v_lin = .5;
+	// if(v_ang > 4) v_ang = 4;
+	// if(v_ang < -4) v_ang = -4;
 
 /*
 
