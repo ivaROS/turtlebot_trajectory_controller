@@ -1,0 +1,23 @@
+[Buildset]
+BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00>\x00t\x00u\x00r\x00t\x00l\x00e\x00b\x00o\x00t\x00_\x00t\x00r\x00a\x00j\x00e\x00c\x00t\x00o\x00r\x00y\x00_\x00c\x00o\x00n\x00t\x00r\x00o\x00l\x00l\x00e\x00r)
+
+[CMake]
+Build Directory Count=1
+Current Build Directory Index=0
+ProjectRootRelative=./
+
+[CMake][CMake Build Directory 0]
+Build Directory Path=file:///home/yipuzhao/catkin_ws/build/turtlebot_trajectory_controller/
+Build Type=Release -DCMAKE_CXX_FLAGS=-O3 -DNDEBUG -march=native -DCMAKE_C_FLAGS_RELEASE=-O3 -DNDEBUG -march=native
+CMake Binary=file:///usr/bin/cmake
+Environment Profile=
+Extra Arguments=
+Install Directory=file:///home/yipuzhao/catkin_ws/install
+
+[Defines And Includes][Compiler]
+Name=GCC
+Path=gcc
+Type=GCC
+
+[Project]
+VersionControlSupport=kdevgit

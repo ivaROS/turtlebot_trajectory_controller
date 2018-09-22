@@ -395,17 +395,29 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
     Update: yocs_velocity_smoother is not used by default, and it is adjustable
     
     */
+
 /*
-double delta_t = .05;
+ * double delta_t = .05;
 double max_ang_v = 4;//5;
 double max_ang_acc = 1.78;
 double max_lin_v = .5;//.7;
 double max_lin_acc = .55;
 
-
     v_lin = near_identity::saturate(v_lin, 0, max_lin_v);
     v_ang = near_identity::saturate(v_ang, -max_ang_v, max_ang_v);
 */
+    
+    //NOTE
+// enforce constraint on velocy and angular rate
+// otherwise turtlebot will skid and fail
+
+double max_ang_v = 0.6;
+double max_lin_v = 1.75;
+
+if(v_lin > max_lin_v) v_lin = max_lin_v;
+if(v_ang > max_ang_v) v_ang = max_ang_v;
+if(v_ang < -max_ang_v) v_ang = -max_ang_v;  
+
 	//Simple thresholding, likely unnecessary
 	// if(v_lin > .5) v_lin = .5;
 	// if(v_ang > 4) v_ang = 4;
