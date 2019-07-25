@@ -408,15 +408,17 @@ double max_lin_acc = .55;
 */
     
     //NOTE
-// enforce constraint on velocy and angular rate
+// enforce constraint on velocity and angular rate
 // otherwise turtlebot will skid and fail
 
+/*
 double max_ang_v = 0.6;
-double max_lin_v = 1.75;
+double max_lin_v = 3.0; // 1.75;
 
 if(v_lin > max_lin_v) v_lin = max_lin_v;
 if(v_ang > max_ang_v) v_ang = max_ang_v;
 if(v_ang < -max_ang_v) v_ang = -max_ang_v;  
+*/
 
 	//Simple thresholding, likely unnecessary
 	// if(v_lin > .5) v_lin = .5;
