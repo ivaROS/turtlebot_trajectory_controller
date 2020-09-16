@@ -301,7 +301,7 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
   if (this->getState() && executing_) // check, if the controller is active
   {
 
-    ROS_DEBUG_STREAM_NAMED(name_, "Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
+    ROS_DEBUG_STREAM_NAMED(name_, "Odom@ " << msg->header.stamp << "s and " << msg->header.frame_id << " frame: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
   
     const nav_msgs::Odometry::ConstPtr desired = TrajectoryController::getDesiredState(msg->header);
     trajectory_odom_publisher_.publish(desired);
@@ -528,7 +528,7 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(const std_msgs::Head
 
   ROS_DEBUG_STREAM_NAMED(name_, "Index: " << curr_index_ << "; # points: " << num_points); 
   ROS_DEBUG_STREAM_NAMED(name_, "Preindex: " << curr_index_ << "; postindex: " << post_index);  
-  ROS_DEBUG_STREAM_NAMED(name_, "Desired@ " << t << "s: (" << x << "," << y << ") and " << quat.w <<"," << quat.z);
+  ROS_DEBUG_STREAM_NAMED(name_, "Desired@ " << t << "s and " << desired_trajectory_.header.frame_id << " frame: (" << x << "," << y << ") and " << quat.w <<"," << quat.z);
   
 
 
