@@ -146,6 +146,7 @@ namespace turtlebot_trajectory_controller
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("cmd_vel_mux/input/navi", 1);
     trajectory_odom_publisher_ = pnh_.advertise< nav_msgs::Odometry >("desired_odom", 10);
     transformed_trajectory_publisher_ = pnh_.advertise< pips_trajectory_msgs::trajectory_points >("transformed_trajectory", 10);
+    transformed_path_publisher_ = pnh_.advertise< nav_msgs::Path >("transformed_path", 10);
   }
   
   void TrajectoryController::configCB(turtlebot_trajectory_controller::TurtlebotControllerConfig &config, uint32_t level) {
@@ -276,6 +277,23 @@ void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_p
       
       
     transformed_trajectory_publisher_.publish(desired_trajectory_);
+    nav_msgs::Path desired_path;
+    desired_path.header=desired_trajectory_.header;
+    for(size_t i = 0; i < desired_trajectory_.points.size(); i++)
+    {
+      geometry_msgs::PoseStamped pose;
+      pose.header.frame_id = desired_trajectory_.header.frame_id;
+      pose.header.stamp = desired_trajectory_.header.stamp + ros::Duration(desired_trajectory_.points[i].time);
+      pose.pose.position.x = desired_trajectory_.points[i].x;
+      pose.pose.position.y = desired_trajectory_.points[i].y;
+
+      geometry_msgs::Quaternion quat = tf::createQuaternionMsgFromRollPitchYaw(0, 0, desired_trajectory_.points[i].theta);
+      pose.pose.orientation = quat;
+
+      desired_path.poses.push_back(pose);
+    }
+
+    transformed_path_publisher_.publish(desired_path);
     ROS_DEBUG_STREAM_NAMED(name_, "Preparing to execute.");
     
 
@@ -302,7 +320,16 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
   {
 
     ROS_DEBUG_STREAM_NAMED(name_, "Odom@ " << msg->header.stamp << "s and " << msg->header.frame_id << " frame: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
-  
+    
+    // Add stopping criteria
+    double diff = sqrt(pow(msg->pose.pose.position.x - desired_trajectory_.points.back().x, 2) + 
+                         pow(msg->pose.pose.position.y - desired_trajectory_.points.back().y, 2));
+    // if(diff < 0.2)
+    // {
+    //   stop();
+    //   return;
+    // }
+
     const nav_msgs::Odometry::ConstPtr desired = TrajectoryController::getDesiredState(msg->header);
     trajectory_odom_publisher_.publish(desired);
     
@@ -448,6 +475,8 @@ if(v_ang < -max_ang_v) v_ang = -max_ang_v;
     command->angular = angular;
     
     geometry_msgs::Twist::ConstPtr const_command = command;
+
+    ROS_DEBUG_STREAM_NAMED(name_, "FF x vel: " << v_lin_ff);
 
     ROS_DEBUG_STREAM_NAMED(name_, "Linear Error: " << x_error << "m, Angular Error: " << theta_error << "rad");
     
