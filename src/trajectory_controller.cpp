@@ -144,6 +144,7 @@ namespace turtlebot_trajectory_controller
     tf_filter_->setTolerance(ros::Duration(0.01));
 
     command_publisher_ = nh_.advertise< geometry_msgs::Twist >("cmd_vel_mux/input/navi", 1);
+    command_timed_pub_ = nh_.advertise< geometry_msgs::TwistStamped >("cmd_vel_mux/input/navi/timed", 1);
     trajectory_odom_publisher_ = pnh_.advertise< nav_msgs::Odometry >("desired_odom", 10);
     transformed_trajectory_publisher_ = pnh_.advertise< pips_trajectory_msgs::trajectory_points >("transformed_trajectory", 10);
     transformed_path_publisher_ = pnh_.advertise< nav_msgs::Path >("transformed_path", 10);
@@ -238,7 +239,12 @@ void TrajectoryController::stop(bool force_stop)
   if(force_stop)
   {
     geometry_msgs::Twist::ConstPtr command(new geometry_msgs::Twist);
+    geometry_msgs::TwistStamped timed_cmd;
+    timed_cmd.header.frame_id = 'base_footprint';
+    timed_cmd.header.stamp = ros::Time::now();
+    timed_cmd.twist = *command;
     command_publisher_.publish(command);
+    command_timed_pub_.publish(timed_cmd);
   }
 }
 
@@ -334,7 +340,12 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
     trajectory_odom_publisher_.publish(desired);
     
     geometry_msgs::Twist::ConstPtr command = TrajectoryController::ControlLaw(msg, desired);
+    geometry_msgs::TwistStamped timed_cmd;
+    timed_cmd.header.frame_id = 'base_footprint';
+    timed_cmd.header.stamp = ros::Time::now();
+    timed_cmd.twist = *command;
     command_publisher_.publish(command);
+    command_timed_pub_.publish(timed_cmd);
     ROS_DEBUG_STREAM_NAMED(name_, "Command: " << command->linear.x <<"m/s, " << command->angular.z << "rad/s");
 
   }

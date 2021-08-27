@@ -61,6 +61,7 @@
 #include <yocs_controllers/default_controller.hpp>
 #include <Eigen/Dense>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <nav_msgs/Odometry.h>
 
 #include <ros/callback_queue.h>
@@ -127,7 +128,7 @@ protected:
   transform_listener_ptr tf_listener_;
   
   ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_;
-  ros::Publisher command_publisher_, trajectory_odom_publisher_, transformed_trajectory_publisher_, transformed_path_publisher_;
+  ros::Publisher command_publisher_, command_timed_pub_, trajectory_odom_publisher_, transformed_trajectory_publisher_, transformed_path_publisher_;
   double k_turn_, k_drive_x_, k_drive_y_;
   ros::Time start_time_;
   std::string odom_frame_id_, base_frame_id_;
