@@ -104,16 +104,43 @@ public:
    * @return true, if successful
    */
   virtual bool init();
+  
+  virtual void stop(bool force_stop=false);
+
+  virtual bool isReady(const std_msgs::Header& header);
+
+  virtual pips_trajectory_msgs::trajectory_points getCurrentTrajectory(const std_msgs::Header& header);
+  
+  virtual pips_trajectory_msgs::trajectory_points getCurrentLocalTrajectory(const std_msgs::Header& header, ros::Duration& ttc, ros::Duration& tte);
+
+  bool executing() { return executing_; }
+  nav_msgs::Odometry::ConstPtr getCurrentOdom() { return curr_odom_; }
+  tf_buffer_ptr getTfBufferPtr() { return tfBuffer_; }
+
+  /**
+   * @brief ROS logging output for enabling the controller
+   * @param msg incoming topic message
+   */
+  void enableCB(const std_msgs::Empty::ConstPtr& msg);
+
+  /**
+   * @brief ROS logging output for disabling the controller
+   * @param msg incoming topic message
+   */
+  void disableCB(const std_msgs::Empty::ConstPtr& msg);
+
+  void TrajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg);
 
 protected:
   ros::NodeHandle nh_, pnh_;
-
-private:
+  
   static constexpr const char* DEFAULT_NAME="trajectory_controller";
   std::string name_;
+  virtual void setupPublishersSubscribers();
+  virtual void setupParams();
+
+private:
   void configCB(turtlebot_trajectory_controller::TurtlebotControllerConfig &config, uint32_t level);
-  void setupPublishersSubscribers();
-  void setupParams();
   
   typedef dynamic_reconfigure::Server<turtlebot_trajectory_controller::TurtlebotControllerConfig> ReconfigureServer;
   std::shared_ptr<ReconfigureServer> reconfigure_server_;
@@ -145,38 +172,20 @@ protected:
   
   message_filters::Subscriber<pips_trajectory_msgs::trajectory_points> trajectory_subscriber_;
   std::shared_ptr<tf_filter> tf_filter_;
-  
-
-  /**
-   * @brief ROS logging output for enabling the controller
-   * @param msg incoming topic message
-   */
-  void enableCB(const std_msgs::Empty::ConstPtr& msg);
-
-  /**
-   * @brief ROS logging output for disabling the controller
-   * @param msg incoming topic message
-   */
-  void disableCB(const std_msgs::Empty::ConstPtr& msg);
-  
-  void stop(bool force_stop=false);
 
   /**
    * @brief Turns on/off a LED, when a bumper is pressed/released
    * @param msg incoming topic message
    */
   virtual void OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
-  
-  void TrajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg);
-  
 
   nav_msgs::OdometryPtr getDesiredState(const std_msgs::Header& header);
 
   Eigen::Matrix2cd getComplexMatrix(double x, double y, double cosTh, double sinTh);
 
-  geometry_msgs::Twist::ConstPtr ControlLaw(const nav_msgs::Odometry::ConstPtr& current, const nav_msgs::Odometry::ConstPtr& desired);
+  virtual geometry_msgs::Twist::ConstPtr ControlLaw(const nav_msgs::Odometry::ConstPtr& current, const nav_msgs::Odometry::ConstPtr& desired);
   
-  bool isReady(const std_msgs::Header& header);
+  
   
 
 };

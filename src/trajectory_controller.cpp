@@ -102,12 +102,12 @@ namespace turtlebot_trajectory_controller
     reconfigure_server_->setCallback(boost::bind(&TrajectoryController::configCB, this, _1, _2));
     
     setupParams();
-    setupPublishersSubscribers();
+    TrajectoryController::setupPublishersSubscribers();
 
     
     
     this->enable();
-    curr_index_ = -1;
+    curr_index_ = size_t(-1);
     executing_ = false;
     
     return true;
@@ -233,7 +233,7 @@ void TrajectoryController::stop(bool force_stop)
   if(executing_)
   {
     executing_ = false;
-    curr_index_ = -1;
+    curr_index_ = size_t(-1);
     ROS_WARN_NAMED(name_, "Interrupted trajectory.");
   }
   if(force_stop)
@@ -246,6 +246,50 @@ void TrajectoryController::stop(bool force_stop)
     command_publisher_.publish(command);
     command_timed_pub_.publish(timed_cmd);
   }
+}
+
+
+pips_trajectory_msgs::trajectory_points TrajectoryController::getCurrentTrajectory(const std_msgs::Header& header)
+{
+  pips_trajectory_msgs::trajectory_points trimmed_trajectory;
+  
+  if(curr_index_ == size_t(-1))
+  {
+    ROS_WARN_NAMED(name_, "No current trajectory");
+    return trimmed_trajectory;
+  }
+  
+  {
+    //Lock trajectory mutex while copying
+    boost::mutex::scoped_lock lock(trajectory_mutex_);
+    
+    trimmed_trajectory.header = desired_trajectory_.header;
+    trimmed_trajectory.header.stamp = header.stamp; //This isn't ideal, but without it the difference in time gets too big and the trajectory can't be transformed to base frame. Only works because desired_trajectory_ is in 'odom' frame, which is continuous
+    trimmed_trajectory.points.insert(trimmed_trajectory.points.begin(), desired_trajectory_.points.begin() + curr_index_, desired_trajectory_.points.end());
+  }
+  
+  
+  pips_trajectory_msgs::trajectory_points localTrajectory;
+  try
+  {
+    localTrajectory = tfBuffer_->transform(trimmed_trajectory, header.frame_id, ros::Duration(.1)); // This was where the transform exceptions were actually coming from!
+    
+    ROS_DEBUG_STREAM_NAMED(name_, "Successfully transformed current trajectory from frame [" << trimmed_trajectory.header.frame_id << "] to frame [" << localTrajectory.header.frame_id << "] at time " << localTrajectory.header.stamp);
+  }
+  catch (tf2::TransformException &ex) {
+    ROS_WARN_NAMED(name_, "Unable to transform trajectory: %s",ex.what());
+    //If we can't verify that the current trajectory is safe, better act as though it isn't
+  }
+  
+  return localTrajectory;
+}
+
+pips_trajectory_msgs::trajectory_points TrajectoryController::getCurrentLocalTrajectory(const std_msgs::Header& header, ros::Duration& ttc, ros::Duration& tte)
+{
+  std_msgs::Header modified_header;
+  modified_header.stamp = header.stamp;
+  modified_header.frame_id = base_frame_id_;
+  return getCurrentTrajectory(modified_header);
 }
 
 
@@ -336,10 +380,10 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
     //   return;
     // }
 
-    const nav_msgs::Odometry::ConstPtr desired = TrajectoryController::getDesiredState(msg->header);
+    const nav_msgs::Odometry::ConstPtr desired = getDesiredState(msg->header);
     trajectory_odom_publisher_.publish(desired);
     
-    geometry_msgs::Twist::ConstPtr command = TrajectoryController::ControlLaw(msg, desired);
+    geometry_msgs::Twist::ConstPtr command = this->ControlLaw(msg, desired);
     geometry_msgs::TwistStamped timed_cmd;
     timed_cmd.header.frame_id = 'base_footprint';
     timed_cmd.header.stamp = ros::Time::now();
