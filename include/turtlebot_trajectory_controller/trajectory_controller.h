@@ -107,6 +107,8 @@ public:
   
   virtual void stop(bool force_stop=false);
 
+  void finalGoalReached() { final_goal_reached_ = true; }
+
   virtual bool isReady(const std_msgs::Header& header);
 
   virtual pips_trajectory_msgs::trajectory_points getCurrentTrajectory(const std_msgs::Header& header);
@@ -165,6 +167,7 @@ protected:
   pips_trajectory_msgs::trajectory_points desired_trajectory_;
   size_t curr_index_;
   bool executing_;
+  bool final_goal_reached_ = false;
   
   nav_msgs::Odometry::ConstPtr curr_odom_;
   boost::mutex trajectory_mutex_;

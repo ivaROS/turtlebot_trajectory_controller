@@ -316,6 +316,7 @@ void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_p
         desired_trajectory_ = tfBuffer_->transform(*msg, odom_frame_id_);  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
         curr_index_ = 0;
         executing_ = true;
+        final_goal_reached_ = false;
       }
       
       ROS_DEBUG_STREAM_NAMED( name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
