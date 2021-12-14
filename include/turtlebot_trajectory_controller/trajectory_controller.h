@@ -166,8 +166,9 @@ protected:
   
   pips_trajectory_msgs::trajectory_points desired_trajectory_;
   size_t curr_index_;
-  bool executing_;
+  bool executing_, pre_executing_;
   bool final_goal_reached_ = false;
+  bool planned_linear_vel_ = false;
   
   nav_msgs::Odometry::ConstPtr curr_odom_;
   boost::mutex trajectory_mutex_;

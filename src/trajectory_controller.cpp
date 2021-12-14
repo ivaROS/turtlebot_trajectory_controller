@@ -109,6 +109,7 @@ namespace turtlebot_trajectory_controller
     this->enable();
     curr_index_ = size_t(-1);
     executing_ = false;
+    pre_executing_ = false;
     
     return true;
   };  
@@ -199,6 +200,9 @@ max_lin_acc = config.max_lin_acc;
     pnh_.param<bool>("odom_spinner", use_odom_spinner_, false);
     pnh_.setParam("odom_spinner", use_odom_spinner_);
 
+    pnh_.getParam("planned_linear_vel", planned_linear_vel_);
+    pnh_.setParam("planned_linear_vel", planned_linear_vel_);
+
   }
   
  
@@ -240,7 +244,7 @@ void TrajectoryController::stop(bool force_stop)
   {
     geometry_msgs::Twist::ConstPtr command(new geometry_msgs::Twist);
     geometry_msgs::TwistStamped timed_cmd;
-    timed_cmd.header.frame_id = 'base_footprint';
+    timed_cmd.header.frame_id = "base_footprint";
     timed_cmd.header.stamp = ros::Time::now();
     timed_cmd.twist = *command;
     command_publisher_.publish(command);
@@ -366,7 +370,7 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
   // TODO: move the rate logging into the rate tracker, allowing the messages to be enabled separately
   ROS_DEBUG_STREAM_THROTTLE_NAMED(2, name_,"Odom rate: " << odom_rate.getRate() << " (" << odom_rate.getNumSamples() << " samples). Current delay: " << odom_rate.getLastDelay() << "s; Average delay: " << odom_rate.getAverageDelay() << "s.");
   
-  
+
   if (this->getState() && executing_) // check, if the controller is active
   {
 
@@ -380,13 +384,13 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
     //   stop();
     //   return;
     // }
-
+    pre_executing_ = executing_;
     const nav_msgs::Odometry::ConstPtr desired = getDesiredState(msg->header);
     trajectory_odom_publisher_.publish(desired);
     
     geometry_msgs::Twist::ConstPtr command = this->ControlLaw(msg, desired);
     geometry_msgs::TwistStamped timed_cmd;
-    timed_cmd.header.frame_id = 'base_footprint';
+    timed_cmd.header.frame_id = "base_footprint";
     timed_cmd.header.stamp = ros::Time::now();
     timed_cmd.twist = *command;
     command_publisher_.publish(command);
@@ -394,7 +398,11 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
     ROS_DEBUG_STREAM_NAMED(name_, "Command: " << command->linear.x <<"m/s, " << command->angular.z << "rad/s");
 
   }
-
+  else if(!executing_ && pre_executing_)
+  {
+    pre_executing_ = executing_;
+    this->stop(true);
+  }
 }
 
 
@@ -521,7 +529,14 @@ if(v_ang < -max_ang_v) v_ang = -max_ang_v;
     v_lin = current->twist.twist.linear.x + lin_accel * delta_t;
 */
     geometry_msgs::Vector3 linear;
-    linear.x = v_lin;
+    if(planned_linear_vel_)
+    {
+      linear.x = v_lin_ff;
+    }
+    else
+    {
+      linear.x = v_lin;
+    }
 
     geometry_msgs::Vector3 angular;
     angular.z = v_ang;
