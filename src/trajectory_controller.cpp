@@ -363,6 +363,7 @@ void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_p
 
 void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
 {
+  ros::WallTime start_time = ros::WallTime::now();
   curr_odom_ = msg;
   
   odom_rate.addTime(msg->header);
@@ -403,6 +404,8 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
     pre_executing_ = executing_;
     this->stop(true);
   }
+
+  ROS_INFO_STREAM("Command generating time: " << float((ros::WallTime::now() - start_time).toNSec()) / 1000000 << " ms.");
 }
 
 
