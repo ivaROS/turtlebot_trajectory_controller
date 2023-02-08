@@ -137,6 +137,8 @@ protected:
   pips_trajectory_msgs::trajectory_points desired_trajectory_;
   size_t curr_index_;
   bool executing_;
+  ros::Subscriber dummy_traj_subscriber_;
+  bool end_of_trajectory_ = false;
   
   nav_msgs::Odometry::ConstPtr curr_odom_;
   boost::mutex trajectory_mutex_;
@@ -167,6 +169,8 @@ protected:
   virtual void OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
   
   void TrajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg);
+
+  void dummy_TJ_CB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg);
   
 
   nav_msgs::OdometryPtr getDesiredState(const std_msgs::Header& header);

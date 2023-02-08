@@ -138,7 +138,9 @@ namespace turtlebot_trajectory_controller
     2 would be better. But if 2 means that older info will be used while newer info is already waiting in the queue, then should use 1 */
     
     tf_filter_.reset(new tf_filter(trajectory_subscriber_, *tfBuffer_, odom_frame_id_, trajectory_queue_size_, nh_));
-    trajectory_subscriber_.subscribe(pnh_, "desired_trajectory", trajectory_queue_size_);
+    // uncomment me to use the original callback function
+    // trajectory_subscriber_.subscribe(pnh_, "desired_trajectory", trajectory_queue_size_);
+    dummy_traj_subscriber_ = pnh_.subscribe("desired_trajectory", 1, &TrajectoryController::dummy_TJ_CB, this);
         
     tf_filter_->registerCallback(boost::bind(&TrajectoryController::TrajectoryCB, this, _1));
     tf_filter_->setTolerance(ros::Duration(0.01));
@@ -242,6 +244,80 @@ void TrajectoryController::stop(bool force_stop)
 }
 
 
+void TrajectoryController::dummy_TJ_CB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg)
+{
+    if (end_of_trajectory_)
+    {
+        return;
+    }
+
+    // @NOTE make sure the first arrived trajectory is updated to the latest odometry time
+    // It solves the confict that the controller uses the planned time and current odometry 
+    // time instead of using planned posistion and current position to find the desired 
+    // tracking point. It only applies to GoodGraph closed-loop test and is not guaranteed
+    // for other cases. (Nov-10-2022, yanwei.du@gatech.edu)
+    if (!curr_odom_)
+    {
+        // odometry is not ready yet
+        return;
+    }
+    pips_trajectory_msgs::trajectory_points updated_msg(*msg);
+    updated_msg.header.stamp = curr_odom_->header.stamp;
+
+    if (this->getState())
+    {
+        if (executing_)  // TODO: maybe change this to be a conditional log
+                         // statement
+        {
+            ROS_DEBUG_NAMED(name_, "Preempting previous trajectory");
+            return;
+        }
+
+        ROS_INFO("dummy_TJ_CB: RECEIVED TRAJECTORY !!!!!!!!!!");
+        ROS_DEBUG_STREAM_NAMED(name_, "Trajectory received. Trajectory time: "
+          << msg->header.stamp << ", current time: " << ros::Time::now());
+
+
+        try
+        {
+            // Lock trajectory mutex while updating trajectory. Ensures that the
+            // desired state is computed using only 1 trajectory.
+            {
+                boost::mutex::scoped_lock lock(trajectory_mutex_);
+
+                desired_trajectory_ = tfBuffer_->transform(
+                    updated_msg, odom_frame_id_);  // Uses the time and frame provided
+                                            // by header of msg
+                                            // (tf2_ros::buffer_interface.h)
+                curr_index_ = 0;
+                executing_  = true;
+            }
+
+            ROS_DEBUG_STREAM_NAMED(name_,
+                                   "Successfully transformed trajectory from '"
+                                       << msg->header.frame_id << "' to '"
+                                       << odom_frame_id_);
+            ROS_INFO("***************************");
+        }
+        catch (tf2::TransformException& ex)
+        {
+            ROS_INFO("Unable to execute trajectory: %s", ex.what());
+            ROS_WARN_NAMED(name_, "Unable to execute trajectory: %s",
+                           ex.what());
+            return;
+        }
+
+        transformed_trajectory_publisher_.publish(desired_trajectory_);
+        ROS_DEBUG_STREAM_NAMED(name_, "Preparing to execute.");
+    
+
+  }
+  else
+  {
+    ROS_DEBUG_STREAM_NAMED(name_, "Controller disabled, will not execute trajectory. [" << name_ <<"]");
+  }
+}
+
 void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg)
 {
 
@@ -265,6 +341,8 @@ void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_p
         desired_trajectory_ = tfBuffer_->transform(*msg, odom_frame_id_);  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
         curr_index_ = 0;
         executing_ = true;
+                        ROS_INFO("desired_trajectory stamp %f", desired_trajectory_.header.stamp.toSec());
+                ROS_INFO("current odometry stamp %f", curr_odom_->header.stamp.toSec());
       }
       
       ROS_DEBUG_STREAM_NAMED( name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
@@ -498,6 +576,8 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(const std_msgs::Head
     {
         executing_ = false;
         curr_index_ = -1;
+        end_of_trajectory_ = true;
+        ROS_INFO("Finished trajectory tracking.");
     }
     
   }
