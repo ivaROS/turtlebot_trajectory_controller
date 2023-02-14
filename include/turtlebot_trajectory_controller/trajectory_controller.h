@@ -62,6 +62,7 @@
 #include <Eigen/Dense>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 
 #include <ros/callback_queue.h>
 
@@ -137,8 +138,16 @@ protected:
   pips_trajectory_msgs::trajectory_points desired_trajectory_;
   size_t curr_index_;
   bool executing_;
-  ros::Subscriber dummy_traj_subscriber_;
+
+  //// added by yanwei
+  ros::Subscriber dummy_traj_subscriber_, dummy_path_subscriber_;
+  ros::Publisher dummy_path_publisher_;
+  nav_msgs::Path::ConstPtr dummy_desired_path_ = nullptr;
   bool end_of_trajectory_ = false;
+  
+  void dummy_TJ_CB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg);
+  void dummy_PATH_CB(const nav_msgs::Path::ConstPtr& msg);
+  ////
   
   nav_msgs::Odometry::ConstPtr curr_odom_;
   boost::mutex trajectory_mutex_;
@@ -168,10 +177,8 @@ protected:
    */
   virtual void OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
   
-  void TrajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg);
+  void TrajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg); 
 
-  void dummy_TJ_CB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg);
-  
 
   nav_msgs::OdometryPtr getDesiredState(const std_msgs::Header& header);
 

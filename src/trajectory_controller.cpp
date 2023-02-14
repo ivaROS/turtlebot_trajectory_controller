@@ -138,9 +138,19 @@ namespace turtlebot_trajectory_controller
     2 would be better. But if 2 means that older info will be used while newer info is already waiting in the queue, then should use 1 */
     
     tf_filter_.reset(new tf_filter(trajectory_subscriber_, *tfBuffer_, odom_frame_id_, trajectory_queue_size_, nh_));
-    // uncomment me to use the original callback function
-    // trajectory_subscriber_.subscribe(pnh_, "desired_trajectory", trajectory_queue_size_);
-    dummy_traj_subscriber_ = pnh_.subscribe("desired_trajectory", 1, &TrajectoryController::dummy_TJ_CB, this);
+    bool compensate_planning_time = false;
+    ros::param::param<bool>("~compensate_planning_time", compensate_planning_time, false);
+    if (compensate_planning_time)
+    {
+      ROS_INFO("compensate_planning_time: %d", compensate_planning_time);
+      dummy_traj_subscriber_ = pnh_.subscribe("desired_trajectory", 1, &TrajectoryController::dummy_TJ_CB, this);
+      dummy_path_subscriber_ = nh_.subscribe("/desired_path", 1, &TrajectoryController::dummy_PATH_CB, this);
+      dummy_path_publisher_ = nh_.advertise<nav_msgs::Path>("/desired_path_compensated", 1);
+    }
+    else
+    {
+      trajectory_subscriber_.subscribe(pnh_, "desired_trajectory", trajectory_queue_size_);
+    }
         
     tf_filter_->registerCallback(boost::bind(&TrajectoryController::TrajectoryCB, this, _1));
     tf_filter_->setTolerance(ros::Duration(0.01));
@@ -256,13 +266,27 @@ void TrajectoryController::dummy_TJ_CB(const pips_trajectory_msgs::trajectory_po
     // time instead of using planned posistion and current position to find the desired 
     // tracking point. It only applies to GoodGraph closed-loop test and is not guaranteed
     // for other cases. (Nov-10-2022, yanwei.du@gatech.edu)
-    if (!curr_odom_)
+    if (!curr_odom_ || !dummy_desired_path_)
     {
-        // odometry is not ready yet
+        // odometry or desired_path is not ready yet
         return;
     }
+
+    // compensate trajectory points
     pips_trajectory_msgs::trajectory_points updated_msg(*msg);
     updated_msg.header.stamp = curr_odom_->header.stamp;
+
+    // compensate nav_msgs path
+    nav_msgs::Path updated_path_msg(*dummy_desired_path_);
+    {
+        const ros::Duration offset =
+            curr_odom_->header.stamp - dummy_desired_path_->header.stamp;
+        updated_path_msg.header.stamp += offset;
+        for (size_t i = 0; i < dummy_desired_path_->poses.size(); ++i)
+        {
+            updated_path_msg.poses[i].header.stamp += offset;
+        }
+    }
 
     if (this->getState())
     {
@@ -309,13 +333,18 @@ void TrajectoryController::dummy_TJ_CB(const pips_trajectory_msgs::trajectory_po
 
         transformed_trajectory_publisher_.publish(desired_trajectory_);
         ROS_DEBUG_STREAM_NAMED(name_, "Preparing to execute.");
-    
-
+        dummy_path_publisher_.publish(updated_path_msg);
   }
   else
   {
     ROS_DEBUG_STREAM_NAMED(name_, "Controller disabled, will not execute trajectory. [" << name_ <<"]");
   }
+}
+
+void TrajectoryController::dummy_PATH_CB(const nav_msgs::Path::ConstPtr& msg)
+{
+  dummy_desired_path_ = msg;
+  dummy_path_subscriber_.shutdown();
 }
 
 void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg)
@@ -341,8 +370,8 @@ void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_p
         desired_trajectory_ = tfBuffer_->transform(*msg, odom_frame_id_);  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
         curr_index_ = 0;
         executing_ = true;
-                        ROS_INFO("desired_trajectory stamp %f", desired_trajectory_.header.stamp.toSec());
-                ROS_INFO("current odometry stamp %f", curr_odom_->header.stamp.toSec());
+        // ROS_INFO("desired_trajectory stamp %f", desired_trajectory_.header.stamp.toSec());
+        // ROS_INFO("current odometry stamp %f", curr_odom_->header.stamp.toSec());
       }
       
       ROS_DEBUG_STREAM_NAMED( name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
