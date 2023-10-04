@@ -57,7 +57,7 @@
 #include <geometry_msgs/Quaternion.h>
 
 #include <nav_msgs/Odometry.h>
-#include <trajectory_generator_ros_interface.h>
+// #include <trajectory_generator_ros_interface.h>
 #include <tf/transform_datatypes.h>
 
 #include <tf2_ros/transform_listener.h>
@@ -102,13 +102,29 @@ namespace turtlebot_trajectory_controller
     reconfigure_server_->setCallback(boost::bind(&TrajectoryController::configCB, this, _1, _2));
     
     setupParams();
-    setupPublishersSubscribers();
+    TrajectoryController::setupPublishersSubscribers();
 
     
     
     this->enable();
-    curr_index_ = -1;
+    curr_index_ = size_t(-1);
     executing_ = false;
+
+    holonomic_enable_ = false;
+    pnh_.getParam("holonomic_enable", holonomic_enable_);
+    pnh_.setParam("holonomic_enable", holonomic_enable_);
+
+    use_feedforward_ = true;
+    pnh_.getParam("use_feedforward", use_feedforward_);
+    pnh_.setParam("use_feedforward", use_feedforward_);
+
+    max_x_ = 10, max_y_ = 10, max_ang_ = 10; // Very large max limit
+    pnh_.getParam("max_x", max_x_);
+    pnh_.getParam("max_y", max_y_);
+    pnh_.getParam("max_ang", max_ang_);
+    pnh_.setParam("max_x_", max_x_);
+    pnh_.setParam("max_y", max_y_);
+    pnh_.setParam("max_ang", max_ang_);
     
     return true;
   };  
@@ -231,7 +247,7 @@ void TrajectoryController::stop(bool force_stop)
   if(executing_)
   {
     executing_ = false;
-    curr_index_ = -1;
+    curr_index_ = size_t(-1);
     ROS_WARN_NAMED(name_, "Interrupted trajectory.");
   }
   if(force_stop)
@@ -239,6 +255,50 @@ void TrajectoryController::stop(bool force_stop)
     geometry_msgs::Twist::ConstPtr command(new geometry_msgs::Twist);
     command_publisher_.publish(command);
   }
+}
+
+
+pips_trajectory_msgs::trajectory_points TrajectoryController::getCurrentTrajectory(const std_msgs::Header& header)
+{
+  pips_trajectory_msgs::trajectory_points trimmed_trajectory;
+  
+  if(curr_index_ == size_t(-1))
+  {
+    ROS_WARN_NAMED(name_, "No current trajectory");
+    return trimmed_trajectory;
+  }
+  
+  {
+    //Lock trajectory mutex while copying
+    boost::mutex::scoped_lock lock(trajectory_mutex_);
+    
+    trimmed_trajectory.header = desired_trajectory_.header;
+    trimmed_trajectory.header.stamp = header.stamp; //This isn't ideal, but without it the difference in time gets too big and the trajectory can't be transformed to base frame. Only works because desired_trajectory_ is in 'odom' frame, which is continuous
+    trimmed_trajectory.points.insert(trimmed_trajectory.points.begin(), desired_trajectory_.points.begin() + curr_index_, desired_trajectory_.points.end());
+  }
+  
+  
+  pips_trajectory_msgs::trajectory_points localTrajectory;
+  try
+  {
+    localTrajectory = tfBuffer_->transform(trimmed_trajectory, header.frame_id, ros::Duration(.1)); // This was where the transform exceptions were actually coming from!
+    
+    ROS_DEBUG_STREAM_NAMED(name_, "Successfully transformed current trajectory from frame [" << trimmed_trajectory.header.frame_id << "] to frame [" << localTrajectory.header.frame_id << "] at time " << localTrajectory.header.stamp);
+  }
+  catch (tf2::TransformException &ex) {
+    ROS_WARN_NAMED(name_, "Unable to transform trajectory: %s",ex.what());
+    //If we can't verify that the current trajectory is safe, better act as though it isn't
+  }
+  
+  return localTrajectory;
+}
+
+pips_trajectory_msgs::trajectory_points TrajectoryController::getCurrentLocalTrajectory(const std_msgs::Header& header, ros::Duration& ttc, ros::Duration& tte)
+{
+  std_msgs::Header modified_header;
+  modified_header.stamp = header.stamp;
+  modified_header.frame_id = base_frame_id_;
+  return getCurrentTrajectory(modified_header);
 }
 
 
@@ -265,6 +325,7 @@ void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_p
         desired_trajectory_ = tfBuffer_->transform(*msg, odom_frame_id_);  // Uses the time and frame provided by header of msg (tf2_ros::buffer_interface.h)
         curr_index_ = 0;
         executing_ = true;
+        final_goal_reached_ = false;
       }
       
       ROS_DEBUG_STREAM_NAMED( name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
@@ -303,10 +364,10 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
 
     ROS_DEBUG_STREAM_NAMED(name_, "Odom@ " << msg->header.stamp << "s: (" << msg->pose.pose.position.x << "," << msg->pose.pose.position.y << ") and " << msg->pose.pose.orientation.w <<"," << msg->pose.pose.orientation.z);
   
-    const nav_msgs::Odometry::ConstPtr desired = TrajectoryController::getDesiredState(msg->header);
+    const nav_msgs::Odometry::ConstPtr desired = getDesiredState(msg->header);
     trajectory_odom_publisher_.publish(desired);
     
-    geometry_msgs::Twist::ConstPtr command = TrajectoryController::ControlLaw(msg, desired);
+    geometry_msgs::Twist::ConstPtr command = this->ControlLaw(msg, desired);
     command_publisher_.publish(command);
     ROS_DEBUG_STREAM_NAMED(name_, "Command: " << command->linear.x <<"m/s, " << command->angular.z << "rad/s");
 
@@ -376,15 +437,46 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
     double theta_error = std::arg(g_error(0,0));
     double x_error = g_error.real()(0,1);
     double y_error = g_error.imag()(0,1);
+
+    double v_lin_fb, v_lin_fb_y, v_ang_fb;
     
-    double v_ang_fb = theta_error * k_turn_ + y_error*k_drive_y_;
-    double v_lin_fb = x_error * k_drive_x_;
+    if(holonomic_enable_)
+    {
+      // v_ang_fb = theta_error * k_turn_ + y_error*k_drive_y_;
+      v_ang_fb = theta_error * k_turn_;
+      v_lin_fb = x_error * k_drive_x_;
+      v_lin_fb_y = y_error * k_drive_y_;
+    }
+    else
+    {
+      v_ang_fb = theta_error * k_turn_ + y_error*k_drive_y_;
+      v_lin_fb = x_error * k_drive_x_;
+    }
 
     double v_ang_ff = desired->twist.twist.angular.z;
     double v_lin_ff = desired->twist.twist.linear.x;
 
-    double v_ang = v_ang_fb + v_ang_ff;
-    double v_lin = v_lin_fb + v_lin_ff;
+    double v_ang, v_lin;
+    if(use_feedforward_)
+    {
+      v_ang = v_ang_fb + v_ang_ff;
+      v_lin = v_lin_fb + v_lin_ff;
+    }
+    else
+    {
+      v_ang = v_ang_fb;
+      v_lin = v_lin_fb;
+    }
+
+    double v_lin_ff_y = desired->twist.twist.linear.y;
+    double v_lin_y;
+    if(holonomic_enable_)
+    {
+      if(use_feedforward_)
+        v_lin_y = v_lin_fb_y + v_lin_ff_y;
+      else
+        v_lin_y = v_lin_fb_y;
+    }
     
     /*
       Saturation/limits:
@@ -408,17 +500,15 @@ double max_lin_acc = .55;
 */
     
     //NOTE
-// enforce constraint on velocity and angular rate
+// enforce constraint on velocy and angular rate
 // otherwise turtlebot will skid and fail
 
-/*
-double max_ang_v = 0.6;
-double max_lin_v = 3.0; // 1.75;
+/*double max_ang_v = 0.6;
+double max_lin_v = 1.75;
 
 if(v_lin > max_lin_v) v_lin = max_lin_v;
 if(v_ang > max_ang_v) v_ang = max_ang_v;
-if(v_ang < -max_ang_v) v_ang = -max_ang_v;  
-*/
+if(v_ang < -max_ang_v) v_ang = -max_ang_v; */ 
 
 	//Simple thresholding, likely unnecessary
 	// if(v_lin > .5) v_lin = .5;
@@ -437,8 +527,17 @@ if(v_ang < -max_ang_v) v_ang = -max_ang_v;
 
     v_lin = current->twist.twist.linear.x + lin_accel * delta_t;
 */
+    if(v_lin > max_x_) v_lin = max_x_;
+    if(v_lin < -max_x_) v_lin = -max_x_;
+    if(v_lin_y > max_y_) v_lin_y = max_y_;
+    if(v_lin_y < -max_y_) v_lin_y = -max_y_;
+    if(v_ang > max_ang_) v_ang = max_ang_;
+    if(v_ang < -max_ang_) v_ang = -max_ang_;
+
     geometry_msgs::Vector3 linear;
     linear.x = v_lin;
+    if(holonomic_enable_)
+      linear.y = v_lin_y;
 
     geometry_msgs::Vector3 angular;
     angular.z = v_ang;
@@ -449,7 +548,7 @@ if(v_ang < -max_ang_v) v_ang = -max_ang_v;
     
     geometry_msgs::Twist::ConstPtr const_command = command;
 
-    ROS_DEBUG_STREAM_NAMED(name_, "Linear Error: " << x_error << "m, Angular Error: " << theta_error << "rad");
+    ROS_DEBUG_STREAM_NAMED(name_, "Linear Error: " << x_error << "m, Angular Error: " << theta_error << "rad, Linear desired: " << v_lin_ff << "m/s, Command: " << command->linear.x);
     
     return const_command;
 }
@@ -522,9 +621,20 @@ nav_msgs::OdometryPtr TrajectoryController::getDesiredState(const std_msgs::Head
   odom->pose.pose.orientation = quat;
 
   // Velocity
-  odom->twist.twist.linear.x = v;
-  odom->twist.twist.linear.y = 0;
-  odom->twist.twist.angular.z = w;
+  if(holonomic_enable_)
+  {
+    // odom->twist.twist.linear.x = v * cos(theta);
+    // odom->twist.twist.linear.y = v * sin(theta);
+    odom->twist.twist.linear.x = v;
+    odom->twist.twist.linear.y = 0;
+    odom->twist.twist.angular.z = w;
+  }
+  else
+  {
+    odom->twist.twist.linear.x = v;
+    odom->twist.twist.linear.y = 0;
+    odom->twist.twist.angular.z = w;
+  }
 
   ROS_DEBUG_STREAM_NAMED(name_, "Index: " << curr_index_ << "; # points: " << num_points); 
   ROS_DEBUG_STREAM_NAMED(name_, "Preindex: " << curr_index_ << "; postindex: " << post_index);  

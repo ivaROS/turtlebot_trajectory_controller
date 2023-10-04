@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         yocs_controllers 
                                         cmake_modules 
                                         geometry_msgs 
-                                        trajectory_generator
                                         tf
                                         tf2_ros
                                         tf2
@@ -37,7 +36,6 @@ catkin_package(INCLUDE_DIRS include
                               kobuki_msgs
                               yocs_controllers 
                               geometry_msgs 
-                              trajectory_generator
                               tf
                               tf2_ros
                               tf2
