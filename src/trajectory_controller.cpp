@@ -65,12 +65,31 @@
 #include <message_filters/subscriber.h>
 
 #include <memory>
+#include <fstream>
 
 
 
 
 namespace turtlebot_trajectory_controller
 {
+  namespace internal
+  {
+    void saveToFile(const std::string& filename, const nav_msgs::Path& nav_path)
+    {
+      std::ofstream myfile(filename);
+      myfile << std::fixed;
+      myfile << "# timestamp tx ty tz qx qy qz qw" << "\n";
+      for (const auto& pose: nav_path.poses)
+      {
+        myfile << std::setprecision(6) << pose.header.stamp.toSec() << " "
+               << pose.pose.position.x << " " << pose.pose.position.y << " "
+               << pose.pose.position.z << " " << pose.pose.orientation.x << " "
+               << pose.pose.orientation.y << " " << pose.pose.orientation.z
+               << " " << pose.pose.orientation.w << "\n";
+      }
+      myfile.close();
+    }
+  }
 
 /**
  * @ brief A simple bump-blink-controller
@@ -140,6 +159,7 @@ namespace turtlebot_trajectory_controller
     tf_filter_.reset(new tf_filter(trajectory_subscriber_, *tfBuffer_, odom_frame_id_, trajectory_queue_size_, nh_));
     bool compensate_planning_time = false;
     ros::param::param<bool>("~compensate_planning_time", compensate_planning_time, false);
+    ros::param::param<std::string>("~output_prefix", output_prefix_, "");
     if (compensate_planning_time)
     {
       ROS_INFO("compensate_planning_time: %d", compensate_planning_time);
@@ -334,6 +354,11 @@ void TrajectoryController::dummy_TJ_CB(const pips_trajectory_msgs::trajectory_po
         transformed_trajectory_publisher_.publish(desired_trajectory_);
         ROS_DEBUG_STREAM_NAMED(name_, "Preparing to execute.");
         dummy_path_publisher_.publish(updated_path_msg);
+        if (!output_prefix_.empty())
+        {
+          internal::saveToFile(output_prefix_ + "_arr_plan_raw.txt", *dummy_desired_path_);
+          internal::saveToFile(output_prefix_ + "_arr_plan.txt", updated_path_msg);
+        }
   }
   else
   {

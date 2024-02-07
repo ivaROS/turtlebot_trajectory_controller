@@ -144,7 +144,8 @@ protected:
   ros::Publisher dummy_path_publisher_;
   nav_msgs::Path::ConstPtr dummy_desired_path_ = nullptr;
   bool end_of_trajectory_ = false;
-  
+  std::string output_prefix_{""};
+
   void dummy_TJ_CB(const pips_trajectory_msgs::trajectory_points::ConstPtr& msg);
   void dummy_PATH_CB(const nav_msgs::Path::ConstPtr& msg);
   ////
