@@ -405,7 +405,7 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
     this->stop(true);
   }
 
-  ROS_INFO_STREAM("Command generating time: " << float((ros::WallTime::now() - start_time).toNSec()) / 1000000 << " ms.");
+  ROS_DEBUG_STREAM("Command generating time: " << float((ros::WallTime::now() - start_time).toNSec()) / 1000000 << " ms.");
 }
 
 
