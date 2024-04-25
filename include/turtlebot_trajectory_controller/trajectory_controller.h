@@ -109,6 +109,12 @@ public:
 
   void finalGoalReached() { final_goal_reached_ = true; }
 
+  virtual bool goalReached()
+  {
+    ROS_WARN_STREAM("This mode is not implemented in this controller.");
+    return false;
+  }
+
   virtual bool isReady(const std_msgs::Header& header);
 
   virtual pips_trajectory_msgs::trajectory_points getCurrentTrajectory(const std_msgs::Header& header);
