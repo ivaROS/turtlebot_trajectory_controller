@@ -120,19 +120,19 @@ namespace turtlebot_trajectory_controller
     
     enable_controller_subscriber_ = pnh_.subscribe("enable", 10, &TrajectoryController::enableCB, this);
     disable_controller_subscriber_ = pnh_.subscribe("disable", 10, &TrajectoryController::disableCB, this);
-    
+
     //Not sure if it is good idea to use the spinner: only one asyncspinner can run in a process, and when using nodelets that is very dangerous assumption
     if(use_odom_spinner_)
     {
       ROS_WARN("Using spinner");
       odom_nh_.setCallbackQueue(&odom_queue_);
-      odom_subscriber_ = odom_nh_.subscribe("odom", 1, &TrajectoryController::OdomCB, this);
+      odom_subscriber_ = odom_nh_.subscribe(odom_topic_, 1, &TrajectoryController::OdomCB, this);
       odom_spinner_ = std::make_shared<ros::AsyncSpinner>(0, &odom_queue_); //1 is for the number of threads
       odom_spinner_->start();
     }
     else
     {
-      odom_subscriber_ = nh_.subscribe("odom", 1, &TrajectoryController::OdomCB, this);
+      odom_subscriber_ = nh_.subscribe(odom_topic_, 1, &TrajectoryController::OdomCB, this);
     }
     /*Should the queue be 1 or 2? I really only want to act on the most recent data. However, if a queue of 1 means that a new message
     won't be stored if it arrives while the previous is being processed, but could otherwise be processed before the next comes, then
@@ -170,10 +170,14 @@ max_lin_acc = config.max_lin_acc;
 
     ROS_INFO_NAMED(name_, "Waiting for odometry message");
 
+    odom_topic_ = "/odom";
+    pnh_.getParam("odom_topic", odom_topic_);
+    pnh_.setParam("odom_topic", odom_topic_);
+
     nav_msgs::Odometry::ConstPtr odom_msg;
     while(!odom_msg)
     {
-        odom_msg = ros::topic::waitForMessage<nav_msgs::Odometry>("odom", nh_, ros::Duration(1.0));
+        odom_msg = ros::topic::waitForMessage<nav_msgs::Odometry>(odom_topic_, nh_, ros::Duration(1.0));
         
         if(odom_msg)
         {
@@ -202,6 +206,16 @@ max_lin_acc = config.max_lin_acc;
 
     pnh_.getParam("planned_linear_vel", planned_linear_vel_);
     pnh_.setParam("planned_linear_vel", planned_linear_vel_);
+
+    v_max_ = 0.6, v_min_ = 0, w_max_ = 6;
+    pnh_.getParam("v_max", v_max_);
+    pnh_.getParam("v_min", v_min_);
+    pnh_.getParam("w_max", w_max_);
+
+    pnh_.setParam("v_max", v_max_);
+    pnh_.setParam("v_min", v_min_);
+    pnh_.setParam("w_max", w_max_);
+    w_min_ = -w_max_;
 
   }
   
@@ -548,6 +562,11 @@ if(v_ang < -max_ang_v) v_ang = -max_ang_v;
     command->linear = linear;
     command->angular = angular;
     
+    command->linear.x = std::max(command->linear.x, v_min_);
+    command->linear.x = std::min(command->linear.x, v_max_);
+    command->angular.z = std::max(command->angular.z, w_min_);
+    command->angular.z = std::min(command->angular.z, w_max_);
+
     geometry_msgs::Twist::ConstPtr const_command = command;
 
     ROS_DEBUG_STREAM_NAMED(name_, "FF x vel: " << v_lin_ff);

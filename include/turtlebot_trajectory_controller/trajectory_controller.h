@@ -154,6 +154,7 @@ private:
   std::shared_ptr<ReconfigureServer> reconfigure_server_;
 
 protected:
+  std::string odom_topic_;
   rate_tracker odom_rate;
   spinner_ptr odom_spinner_;
   ros::NodeHandle odom_nh_;
@@ -182,6 +183,9 @@ protected:
   
   message_filters::Subscriber<pips_trajectory_msgs::trajectory_points> trajectory_subscriber_;
   std::shared_ptr<tf_filter> tf_filter_;
+
+  // Velocity regulation
+  double v_max_, v_min_, w_max_, w_min_;
 
   /**
    * @brief Turns on/off a LED, when a bumper is pressed/released
