@@ -111,8 +111,19 @@ public:
 
   virtual bool goalReached()
   {
-    ROS_WARN_STREAM("This mode is not implemented in this controller.");
-    return false;
+    std::size_t traj_pose_num = desired_trajectory_.points.size();
+    int post_index = std::min(curr_index_+1, traj_pose_num-1);
+
+    if(traj_pose_num > 0 && post_index == traj_pose_num - 1 )
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+    // ROS_WARN_STREAM("This mode is not implemented in this controller.");
+    // return false;
   }
 
   virtual bool isReady(const std_msgs::Header& header);
