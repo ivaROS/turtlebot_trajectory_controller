@@ -485,14 +485,16 @@ geometry_msgs::Twist::ConstPtr TrajectoryController::ControlLaw(const nav_msgs::
     double x_error = g_error.real()(0,1);
     double y_error = g_error.imag()(0,1);
     
-    double v_ang_fb = theta_error * k_turn_ + y_error*k_drive_y_;
-    double v_lin_fb = x_error * k_drive_x_;
+    double v_ang_fb = theta_error * k_turn_;
+    double v_x_lin_fb = x_error * k_drive_x_;
+    double v_y_lin_fb = y_error*k_drive_y_;
 
     double v_ang_ff = desired->twist.twist.angular.z;
     double v_lin_ff = desired->twist.twist.linear.x;
 
     double v_ang = v_ang_fb + v_ang_ff;
-    double v_lin = v_lin_fb + v_lin_ff;
+    double v_x_lin = v_x_lin_fb + v_lin_ff;
+    double v_y_lin = v_y_lin_fb;
     
     /*
       Saturation/limits:
@@ -546,13 +548,14 @@ if(v_ang < -max_ang_v) v_ang = -max_ang_v;
     v_lin = current->twist.twist.linear.x + lin_accel * delta_t;
 */
     geometry_msgs::Vector3 linear;
-    if(planned_linear_vel_)
+    // if(planned_linear_vel_)
+    // {
+    //   linear.x = v_lin_ff;
+    // }
+    // else
     {
-      linear.x = v_lin_ff;
-    }
-    else
-    {
-      linear.x = v_lin;
+      linear.x = v_x_lin;
+      linear.y = v_y_lin;
     }
 
     geometry_msgs::Vector3 angular;
