@@ -134,6 +134,9 @@ namespace turtlebot_trajectory_controller
     {
       odom_subscriber_ = nh_.subscribe(odom_topic_, 1, &TrajectoryController::OdomCB, this);
     }
+
+    second_odom_subscriber_ = nh_.subscribe(second_odom_topic_, 1, &TrajectoryController::SecondOdomCB, this);
+
     /*Should the queue be 1 or 2? I really only want to act on the most recent data. However, if a queue of 1 means that a new message
     won't be stored if it arrives while the previous is being processed, but could otherwise be processed before the next comes, then
     2 would be better. But if 2 means that older info will be used while newer info is already waiting in the queue, then should use 1 */
@@ -173,6 +176,10 @@ max_lin_acc = config.max_lin_acc;
     odom_topic_ = "/odom";
     pnh_.getParam("odom_topic", odom_topic_);
     pnh_.setParam("odom_topic", odom_topic_);
+
+    second_odom_topic_ = "/second_odom";
+    pnh_.getParam("second_odom_topic", second_odom_topic_);
+    pnh_.setParam("second_odom_topic", second_odom_topic_);
 
     nav_msgs::Odometry::ConstPtr odom_msg;
     while(!odom_msg)
@@ -217,6 +224,9 @@ max_lin_acc = config.max_lin_acc;
     pnh_.setParam("w_max", w_max_);
     w_min_ = -w_max_;
 
+    return_second_odom_ = false;
+    pnh_.getParam("return_second_odom", return_second_odom_);
+    pnh_.setParam("return_second_odom", return_second_odom_);
   }
   
  
@@ -337,7 +347,7 @@ void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_p
         final_goal_reached_ = false;
       }
       
-      ROS_DEBUG_STREAM_NAMED( name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
+      ROS_INFO_STREAM_NAMED( name_, "Successfully transformed trajectory from '" << msg->header.frame_id << "' to '" << odom_frame_id_);
     }
     catch (tf2::TransformException &ex) {
         ROS_WARN_NAMED( name_, "Unable to execute trajectory: %s",ex.what());
@@ -374,6 +384,10 @@ void TrajectoryController::TrajectoryCB(const pips_trajectory_msgs::trajectory_p
 
 }
 
+void TrajectoryController::SecondOdomCB(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  second_odom_ = msg;
+}
 
 void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
 {
@@ -425,7 +439,7 @@ void TrajectoryController::OdomCB(const nav_msgs::Odometry::ConstPtr& msg)
 
 bool TrajectoryController::isReady(const std_msgs::Header& header)
 {
-  if(!curr_odom_)
+  if((!return_second_odom_ && !curr_odom_) || (return_second_odom_ && (!curr_odom_ || !second_odom_)))
   {
     ROS_WARN_STREAM_THROTTLE_NAMED(5 , name_,  "No odometry received!");
     return false;

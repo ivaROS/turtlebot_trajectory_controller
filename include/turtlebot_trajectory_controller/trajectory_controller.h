@@ -133,7 +133,12 @@ public:
   virtual pips_trajectory_msgs::trajectory_points getCurrentLocalTrajectory(const std_msgs::Header& header, ros::Duration& ttc, ros::Duration& tte);
 
   bool executing() { return executing_; }
-  nav_msgs::Odometry::ConstPtr getCurrentOdom() { return curr_odom_; }
+  nav_msgs::Odometry::ConstPtr getCurrentOdom() { 
+    if(return_second_odom_)
+      return second_odom_;
+    else
+      return curr_odom_; 
+  }
   tf_buffer_ptr getTfBufferPtr() { return tfBuffer_; }
 
   /**
@@ -165,7 +170,7 @@ private:
   std::shared_ptr<ReconfigureServer> reconfigure_server_;
 
 protected:
-  std::string odom_topic_;
+  std::string odom_topic_, second_odom_topic_;
   rate_tracker odom_rate;
   spinner_ptr odom_spinner_;
   ros::NodeHandle odom_nh_;
@@ -174,7 +179,7 @@ protected:
   tf_buffer_ptr tfBuffer_;
   transform_listener_ptr tf_listener_;
   
-  ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_;
+  ros::Subscriber enable_controller_subscriber_, disable_controller_subscriber_, odom_subscriber_, second_odom_subscriber_;
   ros::Publisher command_publisher_, command_timed_pub_, trajectory_odom_publisher_, transformed_trajectory_publisher_, transformed_path_publisher_;
   double k_turn_, k_drive_x_, k_drive_y_;
   ros::Time start_time_;
@@ -188,7 +193,8 @@ protected:
   bool final_goal_reached_ = false;
   bool planned_linear_vel_ = false;
   
-  nav_msgs::Odometry::ConstPtr curr_odom_;
+  nav_msgs::Odometry::ConstPtr curr_odom_, second_odom_;
+  bool return_second_odom_ = false;
   boost::mutex trajectory_mutex_;
   boost::mutex odom_mutex_;
   
@@ -203,6 +209,8 @@ protected:
    * @param msg incoming topic message
    */
   virtual void OdomCB(const nav_msgs::Odometry::ConstPtr& msg);
+
+  void SecondOdomCB(const nav_msgs::Odometry::ConstPtr& msg);
 
   nav_msgs::OdometryPtr getDesiredState(const std_msgs::Header& header);
 
